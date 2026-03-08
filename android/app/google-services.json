@@ -1,0 +1,54 @@
+{
+  "project_info": {
+    "project_number": "330961362846",
+    "project_id": "evnitypccoe",
+    "storage_bucket": "evnitypccoe.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:330961362846:android:d7a4d122392cc62493408f",
+        "android_client_info": {
+          "package_name": "com.example.evnity"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "330961362846-kkmih3kvfi46edjobnie1ab9c235cbca.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.evnity",
+            "certificate_hash": "2d60c4f7bf218c23de18753a26debce2d9ac7c8f"
+          }
+        },
+        {
+          "client_id": "330961362846-d3hpp7mk76monkbvpk7o867nfn98sqas.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyANVuwx5buD0zL3RLS3EpN7VIgQjyV1ugM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "330961362846-d3hpp7mk76monkbvpk7o867nfn98sqas.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "330961362846-2e1ua406niaualigcc85f4cjg2qqj112.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.evnity"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
