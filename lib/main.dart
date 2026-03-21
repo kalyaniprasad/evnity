@@ -6,13 +6,19 @@ import 'core/router/app_router.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 
-void main() async{
-  WidgetsFlutterBinding.ensureInitialized();
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'core/services/push_notification_service.dart';
 
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
 
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+
+  // Initialize push notifications with the reliable background handler
+  FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+  await PushNotificationService.initialize();
 
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/theme.dart';
 import '../../../../core/widgets/app_snackbar.dart';
 import '../../providers/club_providers.dart';
+import '../../../../core/providers/student_providers.dart';
 
 // ── Club Profile Edit Screen ───────────────────────────────────────────────────
 
@@ -14,8 +15,7 @@ class ClubProfileEditScreen extends ConsumerStatefulWidget {
       _ClubProfileEditScreenState();
 }
 
-class _ClubProfileEditScreenState
-    extends ConsumerState<ClubProfileEditScreen> {
+class _ClubProfileEditScreenState extends ConsumerState<ClubProfileEditScreen> {
   late final TextEditingController _nameCtrl;
   late final TextEditingController _taglineCtrl;
   late final TextEditingController _descCtrl;
@@ -66,23 +66,74 @@ class _ClubProfileEditScreenState
     if (!_formKey.currentState!.validate()) return;
     setState(() => _saving = true);
 
+    final name = _nameCtrl.text.trim();
+    final tagline = _taglineCtrl.text.trim();
+    final description = _descCtrl.text.trim();
+    final mentor = _mentorCtrl.text.trim();
+    final email = _emailCtrl.text.trim();
+    final founded = _foundedCtrl.text.trim();
+    final location = _locationCtrl.text.trim();
+
     final notifier = ref.read(clubProfileProvider.notifier);
-    notifier.setName(_nameCtrl.text.trim());
-    notifier.setTagline(_taglineCtrl.text.trim());
-    notifier.setDescription(_descCtrl.text.trim());
-    notifier.setCategory(_selectedCategory);
-    notifier.setFacultyMentor(_mentorCtrl.text.trim());
-    notifier.setEmail(_emailCtrl.text.trim());
-    notifier.setFounded(_foundedCtrl.text.trim());
-    notifier.setLocation(_locationCtrl.text.trim());
 
-    await Future.delayed(const Duration(milliseconds: 400));
-    setState(() => _saving = false);
+    try {
+      final user = ref.read(currentUserProvider);
+      if (user.id.isNotEmpty) {
+        final repo = ref.read(userRepositoryProvider);
 
-    if (mounted) {
-      showAppSnackbar(context, 'Club profile updated!',
-          type: SnackbarType.success);
-      Navigator.pop(context);
+        // 1. Update Club Document
+        await repo.updateClub(user.id, {
+          'name': name,
+          'tagline': tagline,
+          'description': description,
+          'category': _selectedCategory,
+          'facultyMentor': mentor,
+          'email': email,
+          'founded': founded,
+          'location': location,
+        });
+
+        // 2. Update User Document (for consistent aliasName)
+        await repo.updateUser(user.id, {'aliasName': name});
+
+        // 3. Update Local State Providers
+        notifier.update(
+          ClubProfileModel(
+            name: name,
+            tagline: tagline,
+            description: description,
+            category: _selectedCategory,
+            facultyMentor: mentor,
+            email: email,
+            founded: founded,
+            location: location,
+          ),
+        );
+
+        // Force refresh currentUserProvider to reflect name change globally
+        ref.read(currentUserProvider.notifier).updateAlias(name);
+      }
+
+      if (mounted) {
+        showAppSnackbar(
+          context,
+          'Club profile updated!',
+          type: SnackbarType.success,
+        );
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      if (mounted) {
+        showAppSnackbar(
+          context,
+          'Failed to update profile: $e',
+          type: SnackbarType.error,
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _saving = false);
+      }
     }
   }
 
@@ -91,7 +142,13 @@ class _ClubProfileEditScreenState
     // Derive initials live from the name field
     final initials = _nameCtrl.text.trim().isEmpty
         ? 'CC'
-        : _nameCtrl.text.trim().split(' ').take(2).map((w) => w[0]).join().toUpperCase();
+        : _nameCtrl.text
+              .trim()
+              .split(' ')
+              .take(2)
+              .map((w) => w[0])
+              .join()
+              .toUpperCase();
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -112,10 +169,14 @@ class _ClubProfileEditScreenState
                 ? const SizedBox(
                     width: 18,
                     height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2))
-                : Text('Save',
-                    style: AppTextStyles.labelM
-                        .copyWith(color: AppColors.primary)),
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : Text(
+                    'Save',
+                    style: AppTextStyles.labelM.copyWith(
+                      color: AppColors.primary,
+                    ),
+                  ),
           ),
           const SizedBox(width: 8),
         ],
@@ -146,8 +207,9 @@ class _ClubProfileEditScreenState
                       child: Center(
                         child: Text(
                           initials,
-                          style: AppTextStyles.headingXL
-                              .copyWith(color: Colors.white),
+                          style: AppTextStyles.headingXL.copyWith(
+                            color: Colors.white,
+                          ),
                         ),
                       ),
                     ),
@@ -160,11 +222,13 @@ class _ClubProfileEditScreenState
                         decoration: BoxDecoration(
                           color: AppColors.primary,
                           shape: BoxShape.circle,
-                          border: Border.all(
-                              color: AppColors.white, width: 2),
+                          border: Border.all(color: AppColors.white, width: 2),
                         ),
-                        child: const Icon(Icons.camera_alt_outlined,
-                            size: 14, color: Colors.white),
+                        child: const Icon(
+                          Icons.camera_alt_outlined,
+                          size: 14,
+                          color: Colors.white,
+                        ),
                       ),
                     ),
                   ],
@@ -172,8 +236,8 @@ class _ClubProfileEditScreenState
               ),
               const SizedBox(height: 6),
               Center(
-                  child: Text('Tap to change logo',
-                      style: AppTextStyles.caption)),
+                child: Text('Tap to change logo', style: AppTextStyles.caption),
+              ),
               const SizedBox(height: 28),
 
               // ── Club Identity ───────────────────────────────────────────
@@ -209,8 +273,7 @@ class _ClubProfileEditScreenState
                 _CategoryDropdown(
                   selectedCategory: _selectedCategory,
                   categories: _categories,
-                  onChanged: (v) =>
-                      setState(() => _selectedCategory = v!),
+                  onChanged: (v) => setState(() => _selectedCategory = v!),
                 ),
               ]),
               const SizedBox(height: 20),
@@ -265,17 +328,25 @@ class _ClubProfileEditScreenState
                     foregroundColor: Colors.white,
                     elevation: 0,
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14)),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
                   ),
                   child: _saving
                       ? const SizedBox(
                           width: 20,
                           height: 20,
                           child: CircularProgressIndicator(
-                              strokeWidth: 2, color: Colors.white))
-                      : const Text('Save Changes',
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Text(
+                          'Save Changes',
                           style: TextStyle(
-                              fontSize: 16, fontWeight: FontWeight.w700)),
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
                 ),
               ),
               const SizedBox(height: 20),
@@ -296,30 +367,34 @@ class _FormSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(title,
-              style:
-                  AppTextStyles.labelM.copyWith(color: AppColors.primary)),
-          const SizedBox(height: 10),
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: AppColors.white,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppColors.divider),
-              boxShadow: const [
-                BoxShadow(
-                    color: AppColors.cardShadow,
-                    blurRadius: 8,
-                    offset: Offset(0, 2))
-              ],
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(
+        title,
+        style: AppTextStyles.labelM.copyWith(color: AppColors.primary),
+      ),
+      const SizedBox(height: 10),
+      Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.divider),
+          boxShadow: const [
+            BoxShadow(
+              color: AppColors.cardShadow,
+              blurRadius: 8,
+              offset: Offset(0, 2),
             ),
-            child:
-                Column(crossAxisAlignment: CrossAxisAlignment.start, children: children),
-          ),
-        ],
-      );
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: children,
+        ),
+      ),
+    ],
+  );
 }
 
 // ── Editable Field ────────────────────────────────────────────────────────────
@@ -339,55 +414,55 @@ class _EditField extends StatelessWidget {
     required this.hint,
     required this.controller,
     required this.icon,
-    this.maxLines = 1,
     this.readOnly = false,
+    this.maxLines = 1,
     this.keyboardType = TextInputType.text,
     this.validator,
   });
 
   @override
   Widget build(BuildContext context) => Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label, style: AppTextStyles.caption),
-          const SizedBox(height: 6),
-          TextFormField(
-            controller: controller,
-            readOnly: readOnly,
-            maxLines: maxLines,
-            keyboardType: keyboardType,
-            validator: validator,
-            style: AppTextStyles.labelM.copyWith(fontSize: 14),
-            decoration: InputDecoration(
-              hintText: hint,
-              hintStyle: AppTextStyles.caption,
-              prefixIcon: Icon(icon, size: 18, color: AppColors.primary),
-              filled: true,
-              fillColor:
-                  readOnly ? AppColors.surfaceAlt : AppColors.background,
-              contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 14, vertical: 13),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: AppColors.divider),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: AppColors.divider),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide:
-                    const BorderSide(color: AppColors.primary, width: 1.5),
-              ),
-              errorBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: AppColors.error),
-              ),
-            ),
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(label, style: AppTextStyles.caption),
+      const SizedBox(height: 6),
+      TextFormField(
+        controller: controller,
+        readOnly: readOnly,
+        maxLines: maxLines,
+        keyboardType: keyboardType,
+        validator: validator,
+        style: AppTextStyles.labelM.copyWith(fontSize: 14),
+        decoration: InputDecoration(
+          hintText: hint,
+          hintStyle: AppTextStyles.caption,
+          prefixIcon: Icon(icon, size: 18, color: AppColors.primary),
+          filled: true,
+          fillColor: readOnly ? AppColors.surfaceAlt : AppColors.background,
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 14,
+            vertical: 13,
           ),
-        ],
-      );
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: AppColors.divider),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: AppColors.divider),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+          ),
+          errorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: AppColors.error),
+          ),
+        ),
+      ),
+    ],
+  );
 }
 
 // ── Category Dropdown ─────────────────────────────────────────────────────────
@@ -405,39 +480,43 @@ class _CategoryDropdown extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Category', style: AppTextStyles.caption),
-          const SizedBox(height: 6),
-          DropdownButtonFormField<String>(
-            initialValue: selectedCategory,
-            onChanged: onChanged,
-            items: categories
-                .map((c) => DropdownMenuItem(value: c, child: Text(c)))
-                .toList(),
-            style: AppTextStyles.labelM.copyWith(fontSize: 14),
-            decoration: InputDecoration(
-              prefixIcon: const Icon(Icons.category_rounded,
-                  size: 18, color: AppColors.primary),
-              filled: true,
-              fillColor: AppColors.background,
-              contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: AppColors.divider),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: AppColors.divider),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide:
-                    const BorderSide(color: AppColors.primary, width: 1.5),
-              ),
-            ),
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text('Category', style: AppTextStyles.caption),
+      const SizedBox(height: 6),
+      DropdownButtonFormField<String>(
+        initialValue: selectedCategory,
+        onChanged: onChanged,
+        items: categories
+            .map((c) => DropdownMenuItem(value: c, child: Text(c)))
+            .toList(),
+        style: AppTextStyles.labelM.copyWith(fontSize: 14),
+        decoration: InputDecoration(
+          prefixIcon: const Icon(
+            Icons.category_rounded,
+            size: 18,
+            color: AppColors.primary,
           ),
-        ],
-      );
+          filled: true,
+          fillColor: AppColors.background,
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 14,
+            vertical: 13,
+          ),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: AppColors.divider),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: AppColors.divider),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+          ),
+        ),
+      ),
+    ],
+  );
 }

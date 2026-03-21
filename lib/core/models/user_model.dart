@@ -5,6 +5,9 @@ class UserModel {
   final String role;
   final String? avatarUrl;
   final List<String> registeredEventIds;
+  final String? branch;
+  final String? year;
+  final String? bio;
 
   const UserModel({
     required this.id,
@@ -13,12 +16,18 @@ class UserModel {
     required this.role,
     this.avatarUrl,
     this.registeredEventIds = const [],
+    this.branch,
+    this.year,
+    this.bio,
   });
 
   UserModel copyWith({
     String? aliasName,
     String? avatarUrl,
     List<String>? registeredEventIds,
+    String? branch,
+    String? year,
+    String? bio,
   }) =>
       UserModel(
         id: id,
@@ -27,5 +36,8 @@ class UserModel {
         role: role,
         avatarUrl: avatarUrl ?? this.avatarUrl,
         registeredEventIds: registeredEventIds ?? this.registeredEventIds,
+        branch: branch ?? this.branch,
+        year: year ?? this.year,
+        bio: bio ?? this.bio,
       );
 }

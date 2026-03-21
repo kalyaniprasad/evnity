@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/theme.dart';
 import '../../providers/club_providers.dart';
 import '../../models/club_event.dart';
+import '../../../../core/providers/student_providers.dart';
 import '../../dashboard/widgets/event_status_badge.dart';
 
 class ClubEventDetailScreen extends ConsumerWidget {
@@ -12,7 +13,9 @@ class ClubEventDetailScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final event = ref.watch(clubEventsProvider).where((e) => e.id == eventId).firstOrNull;
+    final eventsAsync = ref.watch(clubEventsProvider);
+    final events = eventsAsync.valueOrNull ?? [];
+    final event = events.where((e) => e.id == eventId).firstOrNull;
 
     if (event == null) {
       return Scaffold(
@@ -53,7 +56,7 @@ class ClubEventDetailScreen extends ConsumerWidget {
                   Image.network(
                     event.posterUrl,
                     fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => Container(
+                    errorBuilder: (_, _, _) => Container(
                         color: AppColors.primarySurface),
                   ),
                   Container(
@@ -159,9 +162,10 @@ class ClubEventDetailScreen extends ConsumerWidget {
                     iconBg: event.status == EventStatus.published
                         ? AppColors.warningSurface
                         : AppColors.successSurface,
-                    onTap: () => ref
-                        .read(clubEventsProvider.notifier)
-                        .toggleStatus(event.id),
+                    onTap: () {
+                      // Status toggling requires updateEvent in EventRepository.
+                      // Leaving unimplemented as UI mock.
+                    },
                   ),
                   const SizedBox(height: 10),
                   _ActionTile(
@@ -171,6 +175,15 @@ class ClubEventDetailScreen extends ConsumerWidget {
                     iconColor: AppColors.primary,
                     iconBg: AppColors.primarySurface,
                     onTap: () {},
+                  ),
+                  const SizedBox(height: 10),
+                  _ActionTile(
+                    icon: Icons.campaign_outlined,
+                    title: 'Notify Registered Users',
+                    subtitle: 'Send a quick update to participants',
+                    iconColor: AppColors.success,
+                    iconBg: AppColors.successSurface,
+                    onTap: () => context.push('/club/event/${event.id}/announcement'),
                   ),
                   const SizedBox(height: 10),
                   _ActionTile(
@@ -217,7 +230,7 @@ class ClubEventDetailScreen extends ConsumerWidget {
           ),
           ElevatedButton(
             onPressed: () {
-              ref.read(clubEventsProvider.notifier).deleteEvent(id);
+              ref.read(eventRepositoryProvider).deleteEvent(id);
               Navigator.pop(context);
               context.go('/club/manage');
             },

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/theme.dart';
 import '../../providers/club_providers.dart';
 import '../../models/club_event.dart';
+import '../../../../core/providers/student_providers.dart';
 import '../widgets/dashboard_header.dart';
 import '../widgets/stat_card.dart';
 import '../widgets/club_event_card.dart';
@@ -13,8 +14,10 @@ class ClubDashboardScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final events = ref.watch(clubEventsProvider);
+    final eventsAsync = ref.watch(clubEventsProvider);
+    final events = eventsAsync.valueOrNull ?? [];
     final stats = ref.watch(clubStatsProvider);
+    final currentUser = ref.watch(currentUserProvider);
     final published =
         events.where((e) => e.status == EventStatus.published).toList();
 
@@ -25,13 +28,39 @@ class ClubDashboardScreen extends ConsumerWidget {
         slivers: [
           // ── Gradient Header ──────────────────────────────────────────────
           SliverToBoxAdapter(
-            child: DashboardHeader(clubName: 'CodeCraft Club'),
+            child: DashboardHeader(
+              clubName: ref.watch(clubProfileProvider).name.isNotEmpty 
+                ? ref.watch(clubProfileProvider).name 
+                : (currentUser.aliasName.isNotEmpty ? currentUser.aliasName : 'Your Club'),
+            ),
           ),
 
           SliverPadding(
             padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
             sliver: SliverList(
               delegate: SliverChildListDelegate([
+
+                // ── Quick Actions ──────────────────────────────────────────
+                Text('Quick Actions', style: AppTextStyles.headingM),
+                const SizedBox(height: 14),
+                Row(
+                  children: [
+                    _QuickActionBtn(
+                      label: 'Announcement',
+                      icon: Icons.campaign_rounded,
+                      color: AppColors.primary,
+                      onTap: () => context.push('/club/announcement'),
+                    ),
+                    const SizedBox(width: 12),
+                    _QuickActionBtn(
+                      label: 'Create Event',
+                      icon: Icons.add_circle_outline_rounded,
+                      color: AppColors.success,
+                      onTap: () => context.go('/club/create'),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 28),
 
                 // ── Stats Row ────────────────────────────────────────────
                 Text('Overview', style: AppTextStyles.headingM),
@@ -99,7 +128,7 @@ class ClubDashboardScreen extends ConsumerWidget {
                         child: ClubEventCard(
                           event: e,
                           onDelete: () => ref
-                              .read(clubEventsProvider.notifier)
+                              .read(eventRepositoryProvider)
                               .deleteEvent(e.id),
                         ),
                       )),
@@ -170,6 +199,44 @@ class _EmptyState extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _QuickActionBtn extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _QuickActionBtn({
+    required this.label,
+    required this.icon,
+    required this.color,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppColors.divider),
+          ),
+          child: Column(
+            children: [
+              Icon(icon, color: color, size: 28),
+              const SizedBox(height: 8),
+              Text(label, style: AppTextStyles.labelS),
+            ],
+          ),
+        ),
       ),
     );
   }

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/theme.dart';
+import '../../../../core/models/event_model.dart';
+import '../../../../core/widgets/live_badge.dart';
 import '../../models/club_event.dart';
 import 'event_status_badge.dart';
 
@@ -42,7 +44,7 @@ class ClubEventCard extends StatelessWidget {
                   height: 158,
                   width: double.infinity,
                   fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => Container(
+                  errorBuilder: (_, _, _) => Container(
                     height: 158,
                     color: AppColors.primarySurface,
                     child: const Center(
@@ -66,7 +68,16 @@ class ClubEventCard extends StatelessWidget {
                 Positioned(
                     top: 12,
                     left: 12,
-                    child: _CategoryBadge(category: event.category)),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _CategoryBadge(category: event.category),
+                        if (event.currentTimingStatus == EventTimingStatus.live) ...[
+                          const SizedBox(width: 8),
+                          const LiveBadge(),
+                        ]
+                      ],
+                    )),
                 Positioned(
                     top: 12,
                     right: 12,

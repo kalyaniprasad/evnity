@@ -4,9 +4,10 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/theme.dart';
 import '../../../../core/widgets/app_snackbar.dart';
 import '../../providers/club_providers.dart';
-import '../../models/club_event.dart';
 import '../../models/club_mock_data.dart';
 import '../../dashboard/widgets/upload_poster_widget.dart';
+import '../../../../core/services/cloudinary_service.dart';
+import '../../../../core/providers/student_providers.dart'; // For currentUserProvider
 
 class CreateEventScreen extends ConsumerStatefulWidget {
   const CreateEventScreen({super.key});
@@ -37,15 +38,27 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
       lastDate: DateTime.now().add(const Duration(days: 365)),
       builder: (ctx, child) => Theme(
         data: Theme.of(ctx).copyWith(
-          colorScheme:
-              const ColorScheme.light(primary: AppColors.primary),
+          colorScheme: const ColorScheme.light(primary: AppColors.primary),
         ),
         child: child!,
       ),
     );
     if (picked != null) {
-      final days = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
-      final months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      final days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+      final months = [
+        'Jan',
+        'Feb',
+        'Mar',
+        'Apr',
+        'May',
+        'Jun',
+        'Jul',
+        'Aug',
+        'Sep',
+        'Oct',
+        'Nov',
+        'Dec',
+      ];
       final label =
           '${days[picked.weekday - 1]}, ${picked.day} ${months[picked.month - 1]} ${picked.year}';
       ref.read(createEventProvider.notifier).setDate(label);
@@ -59,15 +72,13 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
       initialTime: TimeOfDay.now(),
       builder: (ctx, child) => Theme(
         data: Theme.of(ctx).copyWith(
-          colorScheme:
-              const ColorScheme.light(primary: AppColors.primary),
+          colorScheme: const ColorScheme.light(primary: AppColors.primary),
         ),
         child: child!,
       ),
     );
     if (picked != null) {
-      final h =
-          picked.hourOfPeriod == 0 ? 12 : picked.hourOfPeriod;
+      final h = picked.hourOfPeriod == 0 ? 12 : picked.hourOfPeriod;
       final m = picked.minute.toString().padLeft(2, '0');
       final period = picked.period == DayPeriod.am ? 'AM' : 'PM';
       ref.read(createEventProvider.notifier).setTime('$h:$m $period');
@@ -75,40 +86,89 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
   }
 
   // ── Publish ──────────────────────────────────────────────────────────────────
-  void _publish() {
+  Future<void> _publish() async {
     final form = ref.read(createEventProvider);
     if (!form.isValid) {
-      showAppSnackbar(context, 'Please fill in all required fields.',
-          type: SnackbarType.error);
+      showAppSnackbar(
+        context,
+        'Please fill in all required fields and select an image.',
+        type: SnackbarType.error,
+      );
       return;
     }
-    ref.read(clubEventsProvider.notifier).addEvent(ClubEvent(
-          id: 'ce_${DateTime.now().millisecondsSinceEpoch}',
-          title: form.title,
-          category: form.category,
-          date: form.date,
-          time: form.time,
-          venue: form.venue,
-          posterUrl:
-              'https://images.unsplash.com/photo-1504384308090-c894fdcc538d?w=800&q=80',
-          description: form.description,
-          status: EventStatus.published,
-          registrationCount: 0,
-          messageCount: 0,
-        ));
-    ref.read(createEventProvider.notifier).reset();
-    _titleCtrl.clear();
-    _venueCtrl.clear();
-    _descCtrl.clear();
-    showAppSnackbar(context, 'Event published successfully! 🎉',
-        type: SnackbarType.success);
-    context.go('/club/home');
+
+    final user = ref.read(currentUserProvider);
+    final clubProfile = ref.read(clubProfileProvider);
+    if (user.id.isEmpty) return;
+
+    // Show loading
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(child: CircularProgressIndicator()),
+    );
+
+    try {
+      // 1. Upload to Cloudinary
+      final imageUrl = await CloudinaryService.uploadImage(form.posterFile!);
+      if (imageUrl == null) {
+        throw Exception('Failed to upload image to Cloudinary.');
+      }
+
+      // 2. Save Event to Firestore via EventRepository
+      final repo = ref.read(eventRepositoryProvider);
+
+      final eventData = {
+        'title': form.title,
+        'clubName': clubProfile.name.isNotEmpty ? clubProfile.name : user.aliasName,
+        'organizerName': clubProfile.name.isNotEmpty ? clubProfile.name : user.aliasName,
+        'clubId': user.id,
+        'category': form.category,
+        'date': form.date,
+        'time': form.time,
+        'venue': form.venue,
+        'posterUrl': imageUrl,
+        'description': form.description,
+        'status': 'published',
+      };
+
+      await repo.createEvent(eventData);
+
+      // Dismiss loading dialog BEFORE any navigation or snackbars
+      if (mounted) {
+        Navigator.of(context, rootNavigator: true).pop();
+      }
+
+      // Clear form
+      ref.read(createEventProvider.notifier).reset();
+      _titleCtrl.clear();
+      _venueCtrl.clear();
+      _descCtrl.clear();
+
+      if (mounted) {
+        showAppSnackbar(
+          context,
+          'Event published successfully! 🎉',
+          type: SnackbarType.success,
+        );
+        context.go('/club/home');
+      }
+    } catch (e) {
+      if (mounted) {
+        // Ensure loading dialog is dismissed on error too
+        Navigator.of(context, rootNavigator: true).pop();
+        showAppSnackbar(
+          context,
+          'Error: ${e.toString()}',
+          type: SnackbarType.error,
+        );
+      }
+    }
   }
 
   void _saveDraft() {
     showAppSnackbar(context, 'Saved as draft.', type: SnackbarType.info);
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -131,11 +191,15 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-
             // ── Poster Upload ────────────────────────────────────────────
             UploadPosterWidget(
-              isSelected: form.posterSelected,
-              onTap: notifier.togglePoster,
+              imageFile: form.posterFile,
+              onTap: () async {
+                final file = await CloudinaryService.pickImage();
+                if (file != null) {
+                  notifier.setPoster(file);
+                }
+              },
             ),
             const SizedBox(height: 28),
 
@@ -217,12 +281,14 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
                   foregroundColor: AppColors.white,
                   elevation: 0,
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16)),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                 ),
                 icon: const Icon(Icons.rocket_launch_rounded, size: 20),
-                label: const Text('Publish Event',
-                    style: TextStyle(
-                        fontSize: 16, fontWeight: FontWeight.w700)),
+                label: const Text(
+                  'Publish Event',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                ),
               ),
             ),
             const SizedBox(height: 12),
@@ -236,12 +302,14 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
                   foregroundColor: AppColors.textSecondary,
                   side: const BorderSide(color: AppColors.divider, width: 1.5),
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16)),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                 ),
                 icon: const Icon(Icons.save_outlined, size: 18),
-                label: const Text('Save as Draft',
-                    style: TextStyle(
-                        fontSize: 14, fontWeight: FontWeight.w600)),
+                label: const Text(
+                  'Save as Draft',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                ),
               ),
             ),
             const SizedBox(height: 36),
@@ -267,10 +335,12 @@ class _FieldLabel extends StatelessWidget {
   const _FieldLabel(this.text);
   @override
   Widget build(BuildContext context) => Text(
-        text,
-        style: AppTextStyles.labelS.copyWith(
-            color: AppColors.textPrimary, fontWeight: FontWeight.w600),
-      );
+    text,
+    style: AppTextStyles.labelS.copyWith(
+      color: AppColors.textPrimary,
+      fontWeight: FontWeight.w600,
+    ),
+  );
 }
 
 class _InputField extends StatelessWidget {
@@ -297,8 +367,10 @@ class _InputField extends StatelessWidget {
         hintStyle: AppTextStyles.bodyM,
         filled: true,
         fillColor: AppColors.surface,
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
           borderSide: const BorderSide(color: AppColors.divider),
@@ -309,8 +381,7 @@ class _InputField extends StatelessWidget {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide:
-              const BorderSide(color: AppColors.primary, width: 1.8),
+          borderSide: const BorderSide(color: AppColors.primary, width: 1.8),
         ),
       ),
     );
@@ -321,34 +392,36 @@ class _CategoryDropdown extends StatelessWidget {
   final String value;
   final List<String> items;
   final ValueChanged<String> onChanged;
-  const _CategoryDropdown(
-      {required this.value,
-      required this.items,
-      required this.onChanged});
+  const _CategoryDropdown({
+    required this.value,
+    required this.items,
+    required this.onChanged,
+  });
 
   @override
   Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppColors.divider),
+    padding: const EdgeInsets.symmetric(horizontal: 16),
+    decoration: BoxDecoration(
+      color: AppColors.surface,
+      borderRadius: BorderRadius.circular(14),
+      border: Border.all(color: AppColors.divider),
+    ),
+    child: DropdownButtonHideUnderline(
+      child: DropdownButton<String>(
+        value: value,
+        isExpanded: true,
+        icon: const Icon(
+          Icons.keyboard_arrow_down_rounded,
+          color: AppColors.textMuted,
         ),
-        child: DropdownButtonHideUnderline(
-          child: DropdownButton<String>(
-            value: value,
-            isExpanded: true,
-            icon: const Icon(Icons.keyboard_arrow_down_rounded,
-                color: AppColors.textMuted),
-            style:
-                AppTextStyles.bodyM.copyWith(color: AppColors.textPrimary),
-            items: items
-                .map((c) => DropdownMenuItem(value: c, child: Text(c)))
-                .toList(),
-            onChanged: (v) => v != null ? onChanged(v) : null,
-          ),
-        ),
-      );
+        style: AppTextStyles.bodyM.copyWith(color: AppColors.textPrimary),
+        items: items
+            .map((c) => DropdownMenuItem(value: c, child: Text(c)))
+            .toList(),
+        onChanged: (v) => v != null ? onChanged(v) : null,
+      ),
+    ),
+  );
 }
 
 class _PickerTile extends StatelessWidget {
@@ -380,9 +453,11 @@ class _PickerTile extends StatelessWidget {
         ),
         child: Row(
           children: [
-            Icon(icon,
-                size: 18,
-                color: hasValue ? AppColors.primary : AppColors.textMuted),
+            Icon(
+              icon,
+              size: 18,
+              color: hasValue ? AppColors.primary : AppColors.textMuted,
+            ),
             const SizedBox(width: 8),
             Expanded(
               child: Column(
@@ -395,9 +470,7 @@ class _PickerTile extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: AppTextStyles.labelS.copyWith(
-                      color: hasValue
-                          ? AppColors.primary
-                          : AppColors.textMuted,
+                      color: hasValue ? AppColors.primary : AppColors.textMuted,
                       fontWeight: FontWeight.w600,
                     ),
                   ),

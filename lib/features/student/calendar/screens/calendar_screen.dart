@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:table_calendar/table_calendar.dart';
 import '../../../../core/theme/theme.dart';
 import '../../../../core/models/event_model.dart';
 import '../../../../core/providers/student_providers.dart';
+import '../widgets/calendar_event_card.dart';
 
 // ── Date Helpers ───────────────────────────────────────────────────────────────
 // Mock dates are stored as e.g. "Sat, 15 Mar 2025"
@@ -32,25 +34,6 @@ DateTime? _parseMockDate(String date) {
 bool _isSameDay(DateTime a, DateTime b) =>
     a.year == b.year && a.month == b.month && a.day == b.day;
 
-String _formatMonthYear(DateTime d) {
-  const months = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December',
-  ];
-  return '${months[d.month - 1]} ${d.year}';
-}
-
-Color _getCategoryColor(String category) {
-  switch (category) {
-    case 'Technical': return AppColors.categoryTechnical;
-    case 'Cultural':  return AppColors.categoryCultural;
-    case 'Sports':    return AppColors.categorySports;
-    case 'Workshop':  return AppColors.categoryWorkshop;
-    case 'Seminar':   return AppColors.categorySeminar;
-    default:          return AppColors.primary;
-  }
-}
-
 // ── CalendarScreen ─────────────────────────────────────────────────────────────
 
 class CalendarScreen extends ConsumerStatefulWidget {
@@ -61,40 +44,26 @@ class CalendarScreen extends ConsumerStatefulWidget {
 }
 
 class _CalendarScreenState extends ConsumerState<CalendarScreen> {
-  late DateTime _currentMonth;
-  DateTime _selectedDate = DateTime.now();
+  DateTime _focusedDay = DateTime.now();
+  DateTime? _selectedDay;
 
   @override
   void initState() {
     super.initState();
-    final now = DateTime.now();
-    _currentMonth = DateTime(now.year, now.month, 1);
+    _selectedDay = _focusedDay;
   }
 
-  List<EventModel> _getEventsForDate(DateTime date, List<EventModel> allEvents) {
+  List<EventModel> _getEventsForDay(DateTime day, List<EventModel> allEvents) {
     return allEvents.where((e) {
       final parsed = _parseMockDate(e.date);
-      return parsed != null && _isSameDay(parsed, date);
+      return parsed != null && _isSameDay(parsed, day);
     }).toList();
   }
 
-  void _previousMonth() => setState(() {
-        _currentMonth = DateTime(_currentMonth.year, _currentMonth.month - 1);
-      });
-
-  void _nextMonth() => setState(() {
-        _currentMonth = DateTime(_currentMonth.year, _currentMonth.month + 1);
-      });
-
   @override
   Widget build(BuildContext context) {
-    final allEvents = ref.watch(studentEventProvider);
-
-    final daysInMonth = DateUtils.getDaysInMonth(_currentMonth.year, _currentMonth.month);
-    // Sunday = 0 offset (weekday gives Mon=1..Sun=7, we want Sun=0)
-    final firstWeekday = DateTime(_currentMonth.year, _currentMonth.month, 1).weekday % 7;
-    final totalCells = firstWeekday + daysInMonth;
-    final selectedEvents = _getEventsForDate(_selectedDate, allEvents);
+    final allEventsAsync = ref.watch(studentEventProvider);
+    final allEvents = allEventsAsync.valueOrNull ?? [];
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -105,284 +74,118 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
         elevation: 0,
         scrolledUnderElevation: 0,
       ),
-      body: Column(
-        children: [
-          // ── Calendar Panel ──────────────────────────────────────────────────
-          Container(
-            color: AppColors.surface,
-            padding: const EdgeInsets.fromLTRB(20, 8, 8, 16),
-            child: Column(
-              children: [
-                // Month navigation row
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(_formatMonthYear(_currentMonth),
-                        style: AppTextStyles.headingM),
-                    Row(children: [
-                      IconButton(
-                        icon: const Icon(Icons.chevron_left_rounded,
-                            color: AppColors.textSecondary),
-                        onPressed: _previousMonth,
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.chevron_right_rounded,
-                            color: AppColors.textSecondary),
-                        onPressed: _nextMonth,
-                      ),
-                    ]),
-                  ],
-                ),
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          // Precise vertical fill calculation:
+          // Remove limits to let it fill the entire available screen height.
+          final availableHeight = constraints.maxHeight - 56 - 40;
+          final rowHeight = availableHeight / 6;
 
-                // Day-of-week headers
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 4),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: const ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
-                        .map((d) => SizedBox(
-                              width: 36,
-                              child: Text(d,
-                                  textAlign: TextAlign.center,
-                                  style: AppTextStyles.caption.copyWith(
-                                      fontWeight: FontWeight.w700,
-                                      color: AppColors.textMuted)),
-                            ))
-                        .toList(),
-                  ),
-                ),
-                const SizedBox(height: 8),
-
-                // Date grid
-                GridView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 7,
-                    mainAxisExtent: 52,
-                  ),
-                  itemCount: totalCells,
-                  itemBuilder: (context, index) {
-                    // Leading empty cells
-                    if (index < firstWeekday) return const SizedBox.shrink();
-
-                    final day = index - firstWeekday + 1;
-                    final date = DateTime(
-                        _currentMonth.year, _currentMonth.month, day);
-                    final isSelected = _isSameDay(_selectedDate, date);
-                    final isToday = _isSameDay(DateTime.now(), date);
-                    final events = _getEventsForDate(date, allEvents);
-
-                    return GestureDetector(
-                      onTap: () => setState(() => _selectedDate = date),
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 180),
-                        margin: const EdgeInsets.all(2),
-                        decoration: BoxDecoration(
-                          color: isSelected
-                              ? AppColors.primary
-                              : Colors.transparent,
-                          borderRadius: BorderRadius.circular(12),
-                          border: isToday && !isSelected
-                              ? Border.all(
-                                  color: AppColors.primary, width: 1.5)
-                              : null,
-                        ),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              '$day',
-                              style: AppTextStyles.bodyS.copyWith(
-                                color: isSelected
-                                    ? AppColors.white
-                                    : isToday
-                                        ? AppColors.primary
-                                        : AppColors.textPrimary,
-                                fontWeight: isSelected || isToday
-                                    ? FontWeight.w700
-                                    : FontWeight.normal,
-                              ),
-                            ),
-                            if (events.isNotEmpty)
-                              Padding(
-                                padding: const EdgeInsets.only(top: 4),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: events.take(3).map((e) {
-                                    return Container(
-                                      width: 5,
-                                      height: 5,
-                                      margin: const EdgeInsets.symmetric(
-                                          horizontal: 1.2),
-                                      decoration: BoxDecoration(
-                                        color: isSelected
-                                            ? AppColors.white
-                                            : _getCategoryColor(e.category),
-                                        shape: BoxShape.circle,
-                                      ),
-                                    );
-                                  }).toList(),
-                                ),
-                              ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ],
+          return TableCalendar<EventModel>(
+            firstDay: DateTime.utc(2020, 1, 1),
+            lastDay: DateTime.utc(2030, 12, 31),
+            focusedDay: _focusedDay,
+            selectedDayPredicate: (day) => false,
+            calendarFormat: CalendarFormat.month,
+            eventLoader: (day) => _getEventsForDay(day, allEvents),
+            startingDayOfWeek: StartingDayOfWeek.sunday,
+            rowHeight: rowHeight,
+            sixWeekMonthsEnforced: true,
+            headerStyle: HeaderStyle(
+              formatButtonVisible: false,
+              titleCentered: true,
+              titleTextStyle: AppTextStyles.headingM,
+              leftChevronIcon: const Icon(Icons.chevron_left_rounded, color: AppColors.primary),
+              rightChevronIcon: const Icon(Icons.chevron_right_rounded, color: AppColors.primary),
+              headerPadding: const EdgeInsets.symmetric(vertical: 16),
             ),
-          ),
-
-          // ── Section label ───────────────────────────────────────────────────
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 14, 20, 6),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                selectedEvents.isEmpty
-                    ? 'No events scheduled'
-                    : '${selectedEvents.length} event${selectedEvents.length > 1 ? 's' : ''} found',
-                style: AppTextStyles.labelM
-                    .copyWith(color: AppColors.textSecondary),
-              ),
+            daysOfWeekStyle: DaysOfWeekStyle(
+              weekdayStyle: AppTextStyles.caption.copyWith(fontWeight: FontWeight.w700, color: AppColors.textMuted),
+              weekendStyle: AppTextStyles.caption.copyWith(fontWeight: FontWeight.w700, color: AppColors.textSecondary),
             ),
-          ),
+            calendarStyle: const CalendarStyle(
+              outsideDaysVisible: false,
+              selectedDecoration: BoxDecoration(color: Colors.transparent),
+              todayDecoration: BoxDecoration(color: Colors.transparent),
+              markerDecoration: BoxDecoration(color: Colors.transparent),
+            ),
+            calendarBuilders: CalendarBuilders(
+              // Explicitly return empty widget to hide default markers
+              markerBuilder: (context, day, events) => const SizedBox.shrink(),
+              defaultBuilder: (context, day, focusedDay) {
+                final events = _getEventsForDay(day, allEvents);
+                return _buildCalendarCell(day, events, isToday: false);
+              },
+              todayBuilder: (context, day, focusedDay) {
+                final events = _getEventsForDay(day, allEvents);
+                return _buildCalendarCell(day, events, isToday: true);
+              },
+              selectedBuilder: (context, day, focusedDay) {
+                final events = _getEventsForDay(day, allEvents);
+                return _buildCalendarCell(day, events, isToday: isSameDay(day, DateTime.now()));
+              },
+            ),
+            onDaySelected: (selectedDay, focusedDay) {
+              setState(() {
+                _focusedDay = focusedDay;
+              });
 
-          // ── Events for selected day ─────────────────────────────────────────
-          Expanded(
-            child: selectedEvents.isEmpty
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Container(
-                          width: 64,
-                          height: 64,
-                          decoration: BoxDecoration(
-                            color: AppColors.primarySurface,
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: const Icon(Icons.event_available_outlined,
-                              size: 30, color: AppColors.primaryMuted),
-                        ),
-                        const SizedBox(height: 12),
-                        Text('Nothing here', style: AppTextStyles.headingM),
-                        const SizedBox(height: 4),
-                        Text('No events on this day.',
-                            style: AppTextStyles.bodyS),
-                      ],
-                    ),
-                  )
-                : ListView.builder(
-                    padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
-                    itemCount: selectedEvents.length,
-                    itemBuilder: (context, i) =>
-                        _CalendarEventCard(event: selectedEvents[i]),
-                  ),
-          ),
-        ],
+              final events = _getEventsForDay(selectedDay, allEvents);
+              if (events.isNotEmpty) {
+                context.push('/calendar/day-events', extra: {
+                  'date': selectedDay,
+                  'events': events,
+                });
+              }
+            },
+            onPageChanged: (focusedDay) {
+              _focusedDay = focusedDay;
+            },
+          );
+        },
       ),
     );
   }
-}
 
-// ── Event Card ─────────────────────────────────────────────────────────────────
+  Widget _buildCalendarCell(DateTime day, List<EventModel> events, {required bool isToday}) {
+    const order = ['Technical', 'Cultural', 'Sports', 'Workshop', 'Seminar'];
+    
+    final presentCategories = events.map((e) => e.category).toSet().toList();
+    presentCategories.sort((a, b) {
+      final idxA = order.indexOf(a);
+      final idxB = order.indexOf(b);
+      return (idxA != -1 ? idxA : 99).compareTo(idxB != -1 ? idxB : 99);
+    });
 
-class _CalendarEventCard extends StatelessWidget {
-  final EventModel event;
-  const _CalendarEventCard({required this.event});
-
-  @override
-  Widget build(BuildContext context) {
-    final catColor = _getCategoryColor(event.category);
-    return GestureDetector(
-      // Navigate to the existing EventDetailScreen via the named route
-      onTap: () => context.push('/event/${event.id}'),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 14),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: const [
-            BoxShadow(
-              color: AppColors.cardShadow,
-              blurRadius: 14,
-              offset: Offset(0, 4),
-            ),
-          ],
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Text(
+          '${day.day}',
+          style: AppTextStyles.labelL.copyWith(
+            color: isToday ? AppColors.primary : AppColors.textPrimary,
+            fontWeight: isToday ? FontWeight.w900 : FontWeight.w500,
+          ),
         ),
-        child: Row(
-          children: [
-            // Coloured category bar
-            Container(
-              width: 4,
-              height: 56,
+        const SizedBox(height: 8),
+        // Ensure consistent horizontal alignment and height
+        SizedBox(
+          height: 6,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: presentCategories.take(4).map((cat) => Container(
+              margin: const EdgeInsets.symmetric(horizontal: 1.5),
+              width: 6,
+              height: 6,
               decoration: BoxDecoration(
-                color: catColor,
-                borderRadius: BorderRadius.circular(4),
+                color: getCategoryColor(cat),
+                shape: BoxShape.circle,
               ),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Category pill + time
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 3),
-                        decoration: BoxDecoration(
-                          color: catColor.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          event.category,
-                          style: AppTextStyles.caption.copyWith(
-                              color: catColor, fontWeight: FontWeight.w700),
-                        ),
-                      ),
-                      const Spacer(),
-                      Text(
-                        event.time,
-                        style: AppTextStyles.caption.copyWith(
-                            color: AppColors.textSecondary,
-                            fontWeight: FontWeight.w600),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  Text(event.title,
-                      style: AppTextStyles.labelL,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis),
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      const Icon(Icons.location_on_outlined,
-                          size: 13, color: AppColors.textMuted),
-                      const SizedBox(width: 3),
-                      Expanded(
-                        child: Text(event.venue,
-                            style: AppTextStyles.caption,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 8),
-            const Icon(Icons.chevron_right_rounded,
-                color: AppColors.textMuted, size: 20),
-          ],
+            )).toList(),
+          ),
         ),
-      ),
+      ],
     );
   }
 }

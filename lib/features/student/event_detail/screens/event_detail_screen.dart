@@ -11,6 +11,7 @@ class EventDetailScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final event = ref.watch(eventByIdProvider(eventId));
+    final currentUser = ref.watch(currentUserProvider);
 
     if (event == null) {
       return const Scaffold(
@@ -46,7 +47,7 @@ class EventDetailScreen extends ConsumerWidget {
                   Image.network(
                     event.posterUrl,
                     fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => Container(
+                    errorBuilder: (_, _, _) => Container(
                       color: AppColors.primarySurface,
                       child: const Icon(Icons.image_outlined,
                           size: 60, color: AppColors.primaryMuted),
@@ -82,7 +83,7 @@ class EventDetailScreen extends ConsumerWidget {
                     children: [
                       _CategoryChip(category: event.category),
                       const SizedBox(width: 8),
-                      if (event.isRegistered)
+                      if (currentUser.registeredEventIds.contains(event.id))
                         Container(
                           padding: const EdgeInsets.symmetric(
                               horizontal: 10, vertical: 5),
@@ -117,7 +118,6 @@ class EventDetailScreen extends ConsumerWidget {
                   Text(event.title, style: AppTextStyles.displayM),
                   const SizedBox(height: 20),
 
-                  // Info Cards Row
                   Row(
                     children: [
                       Expanded(
@@ -146,7 +146,7 @@ class EventDetailScreen extends ConsumerWidget {
                   _InfoTile(
                     icon: Icons.groups_rounded,
                     label: 'Organised by',
-                    value: event.clubName,
+                    value: event.organizerName,
                     fullWidth: true,
                     valueColor: AppColors.primary,
                   ),
@@ -166,7 +166,7 @@ class EventDetailScreen extends ConsumerWidget {
                   const SizedBox(height: 32),
 
                   // Action Buttons
-                  _RegisterButton(event: event, ref: ref),
+                  _RegisterButton(event: event, ref: ref, currentUser: currentUser),
                   const SizedBox(height: 12),
                   _DiscussionButton(eventId: eventId),
                   const SizedBox(height: 32),
@@ -279,38 +279,42 @@ class _CategoryChip extends StatelessWidget {
 class _RegisterButton extends StatelessWidget {
   final dynamic event;
   final WidgetRef ref;
-  const _RegisterButton({required this.event, required this.ref});
+  final dynamic currentUser;
+  const _RegisterButton({required this.event, required this.ref, required this.currentUser});
 
   @override
   Widget build(BuildContext context) {
+    final isRegistered = currentUser.registeredEventIds.contains(event.id);
+
     return SizedBox(
       width: double.infinity,
       height: 54,
       child: ElevatedButton.icon(
-        onPressed: () =>
-            ref.read(studentEventProvider.notifier).toggleRegistration(event.id),
+        onPressed: isRegistered ? null : () => context.push('/event/${event.id}/register'),
         style: ElevatedButton.styleFrom(
           backgroundColor:
-          event.isRegistered ? const Color(0xFF16A34A) : AppColors.primary,
+          isRegistered ? const Color(0xFF16A34A) : AppColors.primary,
           foregroundColor: Colors.white,
           elevation: 0,
           shape:
           RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         ),
         icon: Icon(
-          event.isRegistered
-              ? Icons.check_circle_rounded
-              : Icons.app_registration_rounded,
-          size: 20,
-        ),
+            isRegistered
+                  ? Icons.check_circle_rounded
+                  : Icons.app_registration_rounded,
+              size: 20,
+            ),
         label: Text(
-          event.isRegistered ? 'Registered ✓' : 'Register for Event',
+          isRegistered ? 'Registered ✓' : 'Register for Event',
           style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
         ),
       ),
     );
   }
 }
+
+
 
 // ── Discussion Button ─────────────────────────────────────────────────────────
 

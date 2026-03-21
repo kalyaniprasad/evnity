@@ -54,30 +54,38 @@ class AuthService {
   /// [selectedRole] is only used on the very first Google sign-in (registration).
   /// On subsequent sign-ins the role is already in Firestore and is not overwritten.
   Future<UserCredential?> signInWithGoogle({String? selectedRole}) async {
-    final googleUser = await _googleSignIn.signIn();
-    if (googleUser == null) return null; // user cancelled
+    try {
+      final googleUser = await _googleSignIn.signIn();
+      if (googleUser == null) {
+        print('DEBUG: Google Sign-In user cancelled.');
+        return null;
+      }
 
-    final googleAuth = await googleUser.authentication;
-    final credential = GoogleAuthProvider.credential(
-      accessToken: googleAuth.accessToken,
-      idToken: googleAuth.idToken,
-    );
+      final googleAuth = await googleUser.authentication;
+      final credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
 
-    final userCredential = await _auth.signInWithCredential(credential);
+      final userCredential = await _auth.signInWithCredential(credential);
 
-    // If new user → persist role to Firestore
-    if (userCredential.additionalUserInfo?.isNewUser == true) {
-      final role = selectedRole ?? 'student';
-      await _db.collection('users').doc(userCredential.user!.uid).set({
-        'uid': userCredential.user!.uid,
-        'email': userCredential.user!.email ?? '',
-        'name': userCredential.user!.displayName ?? 'User',
-        'role': role,
-        'createdAt': FieldValue.serverTimestamp(),
-      });
+      // If new user → persist role to Firestore
+      if (userCredential.additionalUserInfo?.isNewUser == true) {
+        final role = selectedRole ?? 'student';
+        await _db.collection('users').doc(userCredential.user!.uid).set({
+          'uid': userCredential.user!.uid,
+          'email': userCredential.user!.email ?? '',
+          'name': userCredential.user!.displayName ?? 'User',
+          'role': role,
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+      }
+
+      return userCredential;
+    } catch (e) {
+      print('DEBUG: Google Sign-In Exception: $e');
+      rethrow;
     }
-
-    return userCredential;
   }
 
   // ── Sign Out ──────────────────────────────────────────────────────────────

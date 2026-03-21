@@ -1,24 +1,33 @@
+import 'dart:io';
+import '../../../../core/providers/student_providers.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/theme.dart';
 import '../../../../core/widgets/app_snackbar.dart';
+import '../../../../core/services/cloudinary_service.dart';
+import '../../providers/club_providers.dart';
 import '../../dashboard/widgets/upload_poster_widget.dart';
 
-class EventEditScreen extends StatefulWidget {
+class EventEditScreen extends ConsumerStatefulWidget {
   final String eventId;
   const EventEditScreen({super.key, required this.eventId});
 
   @override
-  State<EventEditScreen> createState() => _EventEditScreenState();
+  ConsumerState<EventEditScreen> createState() => _EventEditScreenState();
 }
 
-class _EventEditScreenState extends State<EventEditScreen> {
-  final _titleCtrl = TextEditingController(text: 'Mock Event Title');
-  final _venueCtrl = TextEditingController(text: 'Mock Venue');
-  final _descCtrl = TextEditingController(text: 'Mock description for the event');
+class _EventEditScreenState extends ConsumerState<EventEditScreen> {
+  final _titleCtrl = TextEditingController();
+  final _venueCtrl = TextEditingController();
+  final _descCtrl = TextEditingController();
   String _category = 'Technical';
   String _date = 'Wed, 15 Mar 2025';
   String _time = '10:00 AM';
+
+  bool _initialized = false;
+  File? _newPosterFile;
+  String? _existingPosterUrl;
 
   @override
   void dispose() {
@@ -28,14 +37,80 @@ class _EventEditScreenState extends State<EventEditScreen> {
     super.dispose();
   }
 
-  void _saveChanges() {
-    showAppSnackbar(context, 'Event updated successfully! 🎉',
-        type: SnackbarType.success);
-    context.pop();
+  Future<void> _saveChanges() async {
+    final title = _titleCtrl.text.trim();
+    final venue = _venueCtrl.text.trim();
+    final desc = _descCtrl.text.trim();
+
+    if (title.isEmpty || venue.isEmpty || desc.isEmpty) {
+      showAppSnackbar(context, 'Please fill in all required fields.', type: SnackbarType.error);
+      return;
+    }
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(child: CircularProgressIndicator()),
+    );
+
+    try {
+      String? updatedPosterUrl = _existingPosterUrl;
+
+      // If a new poster is selected, upload it
+      if (_newPosterFile != null) {
+        final url = await CloudinaryService.uploadImage(_newPosterFile!);
+        if (url != null) updatedPosterUrl = url;
+      }
+
+      final repo = ref.read(eventRepositoryProvider);
+
+      final clubProfile = ref.read(clubProfileProvider);
+      final user = ref.read(currentUserProvider);
+
+      final updatedData = {
+        'title': title,
+        'venue': venue,
+        'description': desc,
+        'category': _category,
+        'date': _date,
+        'time': _time,
+        'posterUrl': updatedPosterUrl,
+        'organizerName': clubProfile.name.isNotEmpty ? clubProfile.name : user.aliasName,
+        'status': 'published', // we keep it published, or preserve current status if we query it
+      };
+
+      await repo.updateEvent(widget.eventId, updatedData);
+
+      if (mounted) Navigator.pop(context); // Close loading dialog
+      if (mounted) {
+        showAppSnackbar(context, 'Event updated successfully! 🎉', type: SnackbarType.success);
+        context.pop();
+      }
+    } catch (e) {
+      if (mounted) Navigator.pop(context); // Close loading dialog
+      if (mounted) {
+        showAppSnackbar(context, 'Error updating event: $e', type: SnackbarType.error);
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    if (!_initialized) {
+      final eventsAsync = ref.read(clubEventsProvider);
+      final events = eventsAsync.valueOrNull ?? [];
+      final event = events.where((e) => e.id == widget.eventId).firstOrNull;
+      if (event != null) {
+        _titleCtrl.text = event.title;
+        _venueCtrl.text = event.venue;
+        _descCtrl.text = event.description;
+        _category = event.category;
+        _date = event.date;
+        _time = event.time;
+        _existingPosterUrl = event.posterUrl;
+      }
+      _initialized = true;
+    }
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -64,8 +139,14 @@ class _EventEditScreenState extends State<EventEditScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             UploadPosterWidget(
-              isSelected: true, // assumes poster exists
-              onTap: () {},
+              imageFile: _newPosterFile,
+              existingImageUrl: _existingPosterUrl,
+              onTap: () async {
+                final file = await CloudinaryService.pickImage();
+                if (file != null) {
+                  setState(() => _newPosterFile = file);
+                }
+              },
             ),
             const SizedBox(height: 28),
 

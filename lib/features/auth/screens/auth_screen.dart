@@ -5,7 +5,6 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/theme.dart';
 import '../../../core/providers/providers.dart';
-import '../../../core/services/auth_service.dart';
 import '../../../core/widgets/app_snackbar.dart';
 import '../../shared/widgets/primary_button.dart';
 import '../../shared/widgets/social_auth_button.dart';

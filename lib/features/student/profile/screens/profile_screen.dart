@@ -5,7 +5,6 @@ import '../../../../core/theme/theme.dart';
 import '../../../../core/widgets/app_snackbar.dart';
 import '../../../../core/providers/student_providers.dart';
 import '../../../../core/providers/providers.dart';
-import '../../../../core/services/auth_service.dart';
 import '../../../../core/models/event_model.dart';
 
 // ── Student Profile Screen ─────────────────────────────────────────────────────
@@ -16,8 +15,13 @@ class ProfileScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(currentUserProvider);
-    final allEvents = ref.watch(studentEventProvider);
-    final registeredEvents = allEvents.where((e) => e.isRegistered).toList();
+    final allEventsAsync = ref.watch(studentEventProvider);
+
+    return allEventsAsync.when(
+      loading: () => const Scaffold(backgroundColor: AppColors.background, body: Center(child: CircularProgressIndicator())),
+      error: (err, stack) => Scaffold(body: Center(child: Text('Error: $err'))),
+      data: (allEvents) {
+        final registeredEvents = allEvents.where((e) => user.registeredEventIds.contains(e.id)).toList();
 
     // Derive initials safely
     final initials = user.aliasName.isNotEmpty
@@ -136,19 +140,21 @@ class ProfileScreen extends ConsumerWidget {
                     _InfoRow(
                       icon: Icons.school_outlined,
                       label: 'Branch',
-                      value: 'Computer Science',
+                      value: user.branch ?? 'Computer Science',
                     ),
                     _Divider(),
                     _InfoRow(
                       icon: Icons.calendar_month_outlined,
                       label: 'Academic Year',
-                      value: 'Third Year',
+                      value: user.year ?? 'First Year',
                     ),
                     _Divider(),
                     _InfoRow(
                       icon: Icons.info_outline_rounded,
                       label: 'Bio',
-                      value: 'Passionate about technology and innovation.',
+                      value: (user.bio == null || user.bio!.isEmpty)
+                          ? 'Passionate about technology and innovation.'
+                          : user.bio!,
                     ),
                   ]),
                   const SizedBox(height: 28),
@@ -193,6 +199,7 @@ class ProfileScreen extends ConsumerWidget {
         ],
       ),
     );
+    });
   }
 }
 
@@ -593,7 +600,7 @@ class _RegisteredEventCard extends StatelessWidget {
                 width: 58,
                 height: 58,
                 fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Container(
+                errorBuilder: (_, _, _) => Container(
                   width: 58,
                   height: 58,
                   decoration: BoxDecoration(

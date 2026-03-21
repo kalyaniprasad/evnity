@@ -30,12 +30,12 @@ class RouterNotifier extends ChangeNotifier {
     // Listen to auth state – notifies GoRouter on sign-in / sign-out.
     ref.listen<AsyncValue<User?>>(
       firebaseUserProvider,
-      (_, __) => notifyListeners(),
+      (_, _) => notifyListeners(),
     );
     // Listen to role – notifies GoRouter once Firestore resolves the role.
     ref.listen<AsyncValue<String?>>(
       userRoleProvider,
-      (_, __) => notifyListeners(),
+      (_, _) => notifyListeners(),
     );
   }
 }

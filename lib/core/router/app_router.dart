@@ -1,4 +1,3 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -12,12 +11,14 @@ import '../../features/auth/screens/auth_screen.dart';
 import '../../features/student/shell/student_shell.dart';
 import '../../features/student/home/screens/home_screen.dart';
 import '../../features/student/calendar/screens/calendar_screen.dart';
+import '../../features/student/calendar/screens/day_events_screen.dart';
 import '../../features/student/search/screens/search_screen.dart';
 import '../../features/student/notifications/screens/notifications_screen.dart';
 import '../../features/student/profile/screens/profile_screen.dart';
 import '../../features/student/profile/screens/student_profile_edit_screen.dart';
 import '../../features/student/event_detail/screens/event_detail_screen.dart';
 import '../../features/student/discussion/screens/discussion_screen.dart';
+import '../../features/student/event_registration/screens/event_registration_screen.dart';
 import '../../features/student/search/screens/student_club_detail_screen.dart';
 
 // Club shell + screens
@@ -30,6 +31,8 @@ import '../../features/club/profile/screens/club_profile_edit_screen.dart';
 import '../../features/club/event_detail/screens/club_event_detail_screen.dart';
 import '../../features/club/event_edit/screens/event_edit_screen.dart';
 import '../../features/club/discussion/screens/club_discussion_screen.dart';
+import '../../features/club/dashboard/screens/announcement_screen.dart';
+import '../../features/club/dashboard/screens/sent_announcements_screen.dart';
 
 import '../providers/auth_provider.dart';
 
@@ -150,6 +153,15 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                   state.pageKey, DiscussionScreen(eventId: id));
             },
           ),
+          GoRoute(
+            path: 'register',
+            name: 'eventRegister',
+            pageBuilder: (ctx, state) {
+              final id = state.pathParameters['id']!;
+              return _slidePage(
+                  state.pageKey, EventRegistrationScreen(eventId: id));
+            },
+          ),
         ],
       ),
 
@@ -172,6 +184,21 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               name: 'studentCalendar',
               pageBuilder: (ctx, state) =>
                   _noTransitionPage(state.pageKey, const CalendarScreen()),
+              routes: [
+                GoRoute(
+                  path: 'day-events',
+                  name: 'studentDayEvents',
+                  pageBuilder: (ctx, state) {
+                    final extra = state.extra as Map<String, dynamic>?;
+                    final date = extra?['date'] as DateTime? ?? DateTime.now();
+                    final events = extra?['events'] as List<dynamic>? ?? [];
+                    return _slidePage(
+                      state.pageKey,
+                      DayEventsScreen(date: date, events: events.cast()),
+                    );
+                  },
+                ),
+              ],
             ),
           ]),
           StatefulShellBranch(routes: [
@@ -221,6 +248,15 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                   state.pageKey, ClubDiscussionScreen(eventId: id));
             },
           ),
+          GoRoute(
+            path: 'announcement',
+            name: 'clubEventAnnouncement',
+            pageBuilder: (ctx, state) {
+              final id = state.pathParameters['id']!;
+              return _slidePage(
+                  state.pageKey, AnnouncementScreen(eventId: id));
+            },
+          ),
         ],
       ),
       GoRoute(
@@ -238,6 +274,18 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         name: 'clubProfileEdit',
         pageBuilder: (ctx, state) =>
             _slidePage(state.pageKey, const ClubProfileEditScreen()),
+      ),
+      GoRoute(
+        path: '/club/announcement',
+        name: 'clubAnnouncement',
+        pageBuilder: (ctx, state) =>
+            _slidePage(state.pageKey, const AnnouncementScreen()),
+      ),
+      GoRoute(
+        path: '/club/announcements/history',
+        name: 'clubAnnouncementHistory',
+        pageBuilder: (ctx, state) =>
+            _slidePage(state.pageKey, const SentAnnouncementsScreen()),
       ),
 
       // ── Club Shell (4 tabs) ───────────────────────────────────────────────
@@ -294,7 +342,7 @@ CustomTransitionPage _fadePage(LocalKey key, Widget child) =>
       key: key,
       child: child,
       transitionDuration: const Duration(milliseconds: 380),
-      transitionsBuilder: (_, anim, __, child) => FadeTransition(
+      transitionsBuilder: (_, anim, _, child) => FadeTransition(
         opacity: CurvedAnimation(parent: anim, curve: Curves.easeOut),
         child: child,
       ),
@@ -305,7 +353,7 @@ CustomTransitionPage _slidePage(LocalKey key, Widget child) =>
       key: key,
       child: child,
       transitionDuration: const Duration(milliseconds: 320),
-      transitionsBuilder: (_, anim, __, child) => SlideTransition(
+      transitionsBuilder: (_, anim, _, child) => SlideTransition(
         position: Tween<Offset>(
                 begin: const Offset(1.0, 0), end: Offset.zero)
             .animate(

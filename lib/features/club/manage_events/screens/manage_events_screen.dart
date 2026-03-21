@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/theme.dart';
 import '../../providers/club_providers.dart';
 import '../../models/club_event.dart';
+import '../../../../core/providers/student_providers.dart';
 import '../../dashboard/widgets/club_event_card.dart';
 
 class ManageEventsScreen extends ConsumerStatefulWidget {
@@ -32,12 +33,14 @@ class _ManageEventsScreenState extends ConsumerState<ManageEventsScreen>
 
   @override
   Widget build(BuildContext context) {
-    final all = ref.watch(clubEventsProvider);
+    final allAsync = ref.watch(clubEventsProvider);
+    final all = allAsync.valueOrNull ?? [];
+    
     final published =
         all.where((e) => e.status == EventStatus.published).toList();
     final drafts =
         all.where((e) => e.status == EventStatus.draft).toList();
-    final notifier = ref.read(clubEventsProvider.notifier);
+    final repo = ref.read(eventRepositoryProvider);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -102,13 +105,13 @@ class _ManageEventsScreenState extends ConsumerState<ManageEventsScreen>
         children: [
           _EventList(
               events: all,
-              onDelete: notifier.deleteEvent),
+              onDelete: repo.deleteEvent),
           _EventList(
               events: published,
-              onDelete: notifier.deleteEvent),
+              onDelete: repo.deleteEvent),
           _EventList(
               events: drafts,
-              onDelete: notifier.deleteEvent),
+              onDelete: repo.deleteEvent),
         ],
       ),
     );
@@ -154,7 +157,7 @@ class _EventList extends StatelessWidget {
       physics: const BouncingScrollPhysics(),
       padding: const EdgeInsets.all(20),
       itemCount: events.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 16),
+      separatorBuilder: (_, _) => const SizedBox(height: 16),
       itemBuilder: (ctx, i) => ClubEventCard(
         event: events[i],
         onDelete: () => onDelete(events[i].id),

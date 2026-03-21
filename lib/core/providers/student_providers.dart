@@ -1,54 +1,48 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import '../models/models.dart';
-import '../mock_data/mock_data.dart';
+import '../repositories/user_repository.dart';
 import 'auth_provider.dart';
+import '../repositories/notification_repository.dart';
+import '../repositories/chat_repository.dart';
+import '../services/push_notification_service.dart';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // EVENTS PROVIDER
 // TODO: Replace notifier body with Supabase queries when integrating backend
 // ═══════════════════════════════════════════════════════════════════════════
 
-class StudentEventNotifier extends Notifier<List<EventModel>> {
-  @override
-  List<EventModel> build() => kMockEvents;
+import '../repositories/event_repository.dart';
 
-  void toggleRegistration(String eventId) {
-    state = [
-      for (final event in state)
-        if (event.id == eventId)
-          event.copyWith(isRegistered: !event.isRegistered)
-        else
-          event,
-    ];
+final eventRepositoryProvider = Provider<EventRepository>((ref) => EventRepository());
+
+final studentEventProvider = StreamProvider<List<EventModel>>((ref) {
+  final repo = ref.read(eventRepositoryProvider);
+  return repo.streamEvents();
+});
+
+// Helper for search/filter logic since it's no longer a Notifier
+class EventFilters {
+  static List<EventModel> getByCategory(List<EventModel> events, String category) {
+    if (category == 'All') return events;
+    return events.where((e) => e.category == category).toList();
   }
 
-  List<EventModel> getByCategory(String category) {
-    if (category == 'All') return state;
-    return state.where((e) => e.category == category).toList();
-  }
-
-  List<EventModel> search(String query) {
+  static List<EventModel> search(List<EventModel> events, String query) {
+    if (query.trim().isEmpty) return events;
     final q = query.toLowerCase();
-    return state
+    return events
         .where((e) =>
             e.title.toLowerCase().contains(q) ||
             e.clubName.toLowerCase().contains(q) ||
             e.category.toLowerCase().contains(q))
         .toList();
   }
-
-  List<EventModel> get registeredEvents =>
-      state.where((e) => e.isRegistered).toList();
 }
-
-final studentEventProvider =
-    NotifierProvider<StudentEventNotifier, List<EventModel>>(
-        StudentEventNotifier.new);
 
 // Convenience: single event by id
 final eventByIdProvider = Provider.family<EventModel?, String>((ref, id) {
-  final events = ref.watch(studentEventProvider);
+  final eventsAsync = ref.watch(studentEventProvider);
+  final events = eventsAsync.valueOrNull ?? [];
   try {
     return events.firstWhere((e) => e.id == id);
   } catch (_) {
@@ -60,84 +54,79 @@ final eventByIdProvider = Provider.family<EventModel?, String>((ref, id) {
 // NOTIFICATION PROVIDER
 // ═══════════════════════════════════════════════════════════════════════════
 
-class NotificationNotifier extends Notifier<List<NotificationModel>> {
-  @override
-  List<NotificationModel> build() => kMockNotifications;
 
-  void markAsRead(String id) {
-    state = [
-      for (final n in state)
-        if (n.id == id) n.copyWith(isRead: true) else n,
-    ];
-  }
 
-  void markAllAsRead() {
-    state = [for (final n in state) n.copyWith(isRead: true)];
-  }
+final notificationRepositoryProvider = Provider<NotificationRepository>((ref) => NotificationRepository());
 
-  int get unreadCount => state.where((n) => !n.isRead).length;
-}
-
-final notificationProvider =
-    NotifierProvider<NotificationNotifier, List<NotificationModel>>(
-        NotificationNotifier.new);
+final notificationProvider = StreamProvider<List<NotificationModel>>((ref) {
+  final user = ref.watch(currentUserProvider);
+  if (user.id.isEmpty) return Stream.value([]);
+  
+  final repo = ref.read(notificationRepositoryProvider);
+  return repo.streamUserNotifications(user.id);
+});
 
 final unreadCountProvider = Provider<int>((ref) {
-  return ref.watch(notificationProvider).where((n) => !n.isRead).length;
+  final notificationsAsync = ref.watch(notificationProvider);
+  final notifications = notificationsAsync.valueOrNull ?? [];
+  return notifications.where((n) => !n.isRead).length;
 });
 
 // ═══════════════════════════════════════════════════════════════════════════
 // DISCUSSION PROVIDER
 // ═══════════════════════════════════════════════════════════════════════════
 
-class DiscussionNotifier extends Notifier<List<MessageModel>> {
-  @override
-  List<MessageModel> build() => kMockMessages;
+final chatRepositoryProvider = Provider<ChatRepository>((ref) => ChatRepository());
 
-  void sendMessage(String text) {
-    final newMsg = MessageModel(
-      id: 'm${DateTime.now().millisecondsSinceEpoch}',
-      senderId: 'u1',
-      senderAlias: 'EventExplorer45',
+// discussionStreamProvider streams data based on an event ID
+final discussionStreamProvider = StreamProvider.family<List<MessageModel>, String>((ref, eventId) {
+  final repo = ref.watch(chatRepositoryProvider);
+  return repo.streamEventMessages(eventId);
+});
+
+// Provides an easy way to send messages
+class DiscussionHelper {
+  final Ref ref;
+  DiscussionHelper(this.ref);
+
+  Future<void> sendMessage(String eventId, String text) async {
+    final user = ref.read(currentUserProvider);
+    if (user.id.isEmpty) return;
+
+    final repo = ref.read(chatRepositoryProvider);
+    final dt = DateTime.now();
+    final isPM = dt.hour >= 12;
+    final hour = dt.hour > 12 ? dt.hour - 12 : (dt.hour == 0 ? 12 : dt.hour);
+    final min = dt.minute.toString().padLeft(2, '0');
+    final formattedTime = '$hour:$min ${isPM ? 'PM' : 'AM'}';
+
+    await repo.sendMessage(
+      eventId: eventId,
+      senderId: user.id,
+      senderAlias: user.aliasName,
       message: text,
-      timestamp: _formatTime(DateTime.now()),
-      senderType: MessageSenderType.student,
+      senderTypeStr: 'student', // Students use this provider
+      formattedTime: formattedTime,
     );
-    state = [...state, newMsg];
-  }
-
-  String _formatTime(DateTime dt) {
-    final h = dt.hour > 12 ? dt.hour - 12 : dt.hour == 0 ? 12 : dt.hour;
-    final m = dt.minute.toString().padLeft(2, '0');
-    final period = dt.hour >= 12 ? 'PM' : 'AM';
-    return '$h:$m $period';
   }
 }
 
-final discussionProvider =
-    NotifierProvider<DiscussionNotifier, List<MessageModel>>(
-        DiscussionNotifier.new);
+final discussionHelperProvider = Provider<DiscussionHelper>((ref) => DiscussionHelper(ref));
+
+// studentEventProvider is now a StreamProvider
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CURRENT USER PROVIDER
-// FIX: Reads real identity from Firebase Auth + userRoleProvider instead of
-// using static mock data. Falls back gracefully while async data resolves.
 // ═══════════════════════════════════════════════════════════════════════════
 
 class CurrentUserNotifier extends Notifier<UserModel> {
   @override
   UserModel build() {
-    // FIX: Pull the live Firebase user and resolved role from Riverpod.
-    // ref.watch() means this rebuild whenever auth state changes (e.g. logout).
     final firebaseUserAsync = ref.watch(firebaseUserProvider);
-    final roleAsync = ref.watch(userRoleProvider);
+    final firebaseUser = firebaseUserAsync.valueOrNull;
 
-    final User? firebaseUser = firebaseUserAsync.valueOrNull;
-    final String? role = roleAsync.valueOrNull;
-
-    // If signed out or still loading, return an empty/default model.
     if (firebaseUser == null) {
-      return UserModel(
+      return const UserModel(
         id: '',
         email: '',
         aliasName: 'Guest',
@@ -145,26 +134,67 @@ class CurrentUserNotifier extends Notifier<UserModel> {
       );
     }
 
-    // Build UserModel from real Firebase data.
+    // Attempt to fetch fresh data from Firestore
+    _fetchUser(firebaseUser.uid, firebaseUser.email, firebaseUser.displayName, firebaseUser.photoURL);
+
+    // Initial state based on Auth token
     return UserModel(
       id: firebaseUser.uid,
       email: firebaseUser.email ?? '',
-      // Use displayName if available; otherwise derive from email prefix.
       aliasName: firebaseUser.displayName?.isNotEmpty == true
           ? firebaseUser.displayName!
           : (firebaseUser.email?.split('@').first ?? 'User'),
-      role: role ?? 'student', // default to 'student' until Firestore responds
+      role: 'student', // Default until fetch completes
       avatarUrl: firebaseUser.photoURL,
     );
+  }
+
+  Future<void> _fetchUser(String uid, String? email, String? name, String? photoUrl) async {
+    final userRepository = ref.read(userRepositoryProvider);
+    final dbUser = await userRepository.getUser(uid);
+
+    if (dbUser != null) {
+      state = dbUser;
+      // Start listening for notifications once user is loaded
+      PushNotificationService.startFirestoreListener(uid);
+    } else {
+      // User doc might not exist yet if just registered via Google, create it
+      final roleAsync = ref.read(userRoleProvider);
+      final role = roleAsync.valueOrNull ?? 'student';
+
+      final newUser = UserModel(
+        id: uid,
+        email: email ?? '',
+        aliasName: name ?? (email?.split('@').first ?? 'User'),
+        role: role,
+        avatarUrl: photoUrl,
+      );
+      await userRepository.createUser(newUser);
+      state = newUser;
+      // Start listening for notifications for newly created user
+      PushNotificationService.startFirestoreListener(uid);
+    }
   }
 
   void updateAlias(String newAlias) {
     state = state.copyWith(aliasName: newAlias);
   }
+
+  void updateProfile(StudentProfileEditState editState) {
+    state = state.copyWith(
+      aliasName: editState.aliasName,
+      branch: editState.branch,
+      year: editState.year,
+      bio: editState.bio,
+    );
+  }
 }
 
 final currentUserProvider =
     NotifierProvider<CurrentUserNotifier, UserModel>(CurrentUserNotifier.new);
+
+// User Repository Provider
+final userRepositoryProvider = Provider<UserRepository>((ref) => UserRepository());
 
 // ═══════════════════════════════════════════════════════════════════════════
 // SEARCH PROVIDER
@@ -208,33 +238,34 @@ final searchProvider =
 // Derived: filtered results
 final filteredEventsProvider = Provider<List<EventModel>>((ref) {
   final searchState = ref.watch(searchProvider);
-  final allEvents = ref.watch(studentEventProvider);
+  final allEventsAsync = ref.watch(studentEventProvider);
+  final allEvents = allEventsAsync.valueOrNull ?? [];
 
   var results = allEvents;
 
   if (searchState.selectedCategory != 'All') {
-    results = results
-        .where((e) => e.category == searchState.selectedCategory)
-        .toList();
+    results = EventFilters.getByCategory(results, searchState.selectedCategory);
   }
 
   if (searchState.query.trim().isNotEmpty) {
-    final q = searchState.query.toLowerCase();
-    results = results
-        .where((e) =>
-            e.title.toLowerCase().contains(q) ||
-            e.clubName.toLowerCase().contains(q) ||
-            e.category.toLowerCase().contains(q))
-        .toList();
+    results = EventFilters.search(results, searchState.query);
   }
 
   return results;
 });
 
+// Fetch all clubs from Firebase
+final allClubsProvider = FutureProvider<List<ClubModel>>((ref) async {
+  final repo = ref.read(userRepositoryProvider);
+  return await repo.getAllClubs();
+});
+
 // Derived: filtered clubs (mirrors filteredEventsProvider pattern)
 final filteredClubsProvider = Provider<List<ClubModel>>((ref) {
   final searchState = ref.watch(searchProvider);
-  var results = List<ClubModel>.from(kMockClubs);
+  final allClubsAsync = ref.watch(allClubsProvider);
+  final allClubs = allClubsAsync.valueOrNull ?? [];
+  var results = List<ClubModel>.from(allClubs);
 
   if (searchState.selectedCategory != 'All') {
     results = results
@@ -257,8 +288,10 @@ final filteredClubsProvider = Provider<List<ClubModel>>((ref) {
 
 // Convenience: single club by id
 final clubByIdProvider = Provider.family<ClubModel?, String>((ref, id) {
+  final allClubsAsync = ref.watch(allClubsProvider);
+  final allClubs = allClubsAsync.valueOrNull ?? [];
   try {
-    return kMockClubs.firstWhere((c) => c.id == id);
+    return allClubs.firstWhere((c) => c.id == id);
   } catch (_) {
     return null;
   }
@@ -307,10 +340,10 @@ class StudentProfileEditNotifier extends Notifier<StudentProfileEditState> {
     final user = ref.read(currentUserProvider);
     return StudentProfileEditState(
       aliasName: user.aliasName,
-      fullName: user.aliasName,
-      branch: 'Computer Science', // Mock default — replace with real field when backend ready
-      year: 'Third Year',
-      bio: 'Passionate about technology and innovation.',
+      fullName: user.aliasName, // We can keep fullName mapping to aliasName if there is no separate fullName field
+      branch: user.branch ?? '', 
+      year: user.year ?? 'First Year',
+      bio: user.bio ?? '',
     );
   }
 
@@ -320,9 +353,25 @@ class StudentProfileEditNotifier extends Notifier<StudentProfileEditState> {
   void setYear(String v) => state = state.copyWith(year: v);
   void setBio(String v) => state = state.copyWith(bio: v);
 
-  /// Commits the edit state back to currentUserProvider.
-  void save() {
-    ref.read(currentUserProvider.notifier).updateAlias(state.aliasName);
+  /// Commits the edit state back to currentUserProvider and saving to Firestore.
+  Future<void> save() async {
+    final user = ref.read(currentUserProvider);
+    if (user.id.isEmpty) return;
+
+    final repo = ref.read(userRepositoryProvider);
+
+    // Using aliasName mapped to the form aliasName field
+    final updatedData = {
+      'aliasName': state.aliasName,
+      'branch': state.branch,
+      'year': state.year,
+      'bio': state.bio,
+    };
+
+    await repo.updateUser(user.id, updatedData);
+
+    // Refresh the local State
+    ref.read(currentUserProvider.notifier).updateProfile(state);
   }
 }
 

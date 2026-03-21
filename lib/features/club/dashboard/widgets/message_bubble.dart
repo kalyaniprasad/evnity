@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 import '../../../../core/theme/theme.dart';
-import '../../models/club_message.dart';
+import '../../../../core/models/message_model.dart';
 
 class MessageBubble extends StatelessWidget {
-  final ClubMessage message;
+  final MessageModel message;
   final bool isMe; // true = organizer (right-aligned)
 
   const MessageBubble({super.key, required this.message, required this.isMe});
 
   @override
   Widget build(BuildContext context) {
-    final isStudent = message.senderType == ClubMessageSender.student;
+    final isStudent = message.senderType == MessageSenderType.student;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 14),

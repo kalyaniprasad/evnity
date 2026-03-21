@@ -27,7 +27,7 @@ class _DiscussionScreenState extends ConsumerState<DiscussionScreen> {
   void _sendMessage() {
     final text = _controller.text.trim();
     if (text.isEmpty) return;
-    ref.read(discussionProvider.notifier).sendMessage(text);
+    ref.read(discussionHelperProvider).sendMessage(widget.eventId, text);
     _controller.clear();
     Future.delayed(const Duration(milliseconds: 100), () {
       if (_scrollController.hasClients) {
@@ -42,8 +42,9 @@ class _DiscussionScreenState extends ConsumerState<DiscussionScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final messages = ref.watch(discussionProvider);
+    final messagesAsync = ref.watch(discussionStreamProvider(widget.eventId));
     final event = ref.watch(eventByIdProvider(widget.eventId));
+    final currentUser = ref.watch(currentUserProvider);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -65,7 +66,10 @@ class _DiscussionScreenState extends ConsumerState<DiscussionScreen> {
               style: AppTextStyles.headingM,
             ),
             Text(
-              '${messages.length} messages',
+              messagesAsync.maybeWhen(
+                data: (msgs) => '${msgs.length} messages',
+                orElse: () => 'Loading...',
+              ),
               style: AppTextStyles.caption,
             ),
           ],
@@ -86,7 +90,7 @@ class _DiscussionScreenState extends ConsumerState<DiscussionScreen> {
                       size: 14, color: AppColors.primary),
                   const SizedBox(width: 4),
                   Text(
-                    '${messages.length + 4}',
+                    '${event?.registrationCount ?? 0}',
                     style: AppTextStyles.labelS
                         .copyWith(color: AppColors.primary),
                   ),
@@ -100,17 +104,26 @@ class _DiscussionScreenState extends ConsumerState<DiscussionScreen> {
         children: [
           // ── Message List ────────────────────────────────────────────────
           Expanded(
-            child: ListView.builder(
-              controller: _scrollController,
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              physics: const BouncingScrollPhysics(),
-              itemCount: messages.length,
-              itemBuilder: (context, index) {
-                final msg = messages[index];
-                final isMe = msg.senderType == MessageSenderType.student &&
-                    msg.senderId == 'u1';
-                return _MessageBubble(message: msg, isMe: isMe);
+            child: messagesAsync.when(
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (err, st) => Center(child: Text('Error: $err')),
+              data: (messages) {
+                if (messages.isEmpty) {
+                  return const Center(child: Text('No messages yet. Be the first to start the discussion!'));
+                }
+                return ListView.builder(
+                  controller: _scrollController,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  physics: const BouncingScrollPhysics(),
+                  itemCount: messages.length,
+                  itemBuilder: (context, index) {
+                    final msg = messages[index];
+                    final isMe = msg.senderType == MessageSenderType.student &&
+                        msg.senderId == currentUser.id;
+                    return _MessageBubble(message: msg, isMe: isMe);
+                  },
+                );
               },
             ),
           ),
@@ -118,8 +131,7 @@ class _DiscussionScreenState extends ConsumerState<DiscussionScreen> {
           // ── Input Bar ───────────────────────────────────────────────────
           Container(
             color: AppColors.white,
-            padding: EdgeInsets.fromLTRB(
-                16, 12, 16, 12 + MediaQuery.of(context).viewInsets.bottom),
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
             child: SafeArea(
               top: false,
               child: Row(

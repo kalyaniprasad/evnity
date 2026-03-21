@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/models/event_model.dart';
 import '../../../../core/theme/theme.dart';
+import '../../../../core/widgets/live_badge.dart';
 
 class EventCard extends StatelessWidget {
   final EventModel event;
@@ -39,7 +40,7 @@ class EventCard extends StatelessWidget {
                     height: compact ? 140 : 180,
                     width: double.infinity,
                     fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => Container(
+                    errorBuilder: (_, _, _) => Container(
                       height: compact ? 140 : 180,
                       color: AppColors.primarySurface,
                       child: const Center(
@@ -61,11 +62,20 @@ class EventCard extends StatelessWidget {
                       );
                     },
                   ),
-                  // Category Badge
+                  // Category Badge & Live Badge
                   Positioned(
                     top: 12,
                     left: 12,
-                    child: _CategoryBadge(category: event.category),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _CategoryBadge(category: event.category),
+                        if (event.currentStatus == EventTimingStatus.live) ...[
+                          const SizedBox(width: 8),
+                          const LiveBadge(),
+                        ]
+                      ],
+                    ),
                   ),
                   // Registered badge
                   if (event.isRegistered)
@@ -121,7 +131,7 @@ class EventCard extends StatelessWidget {
                       const SizedBox(width: 4),
                       Expanded(
                         child: Text(
-                          event.clubName,
+                          event.organizerName,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: AppTextStyles.bodyS.copyWith(

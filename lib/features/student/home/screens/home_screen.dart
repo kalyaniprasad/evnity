@@ -11,10 +11,15 @@ class HomeScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final events = ref.watch(studentEventProvider);
+    final eventsAsync = ref.watch(studentEventProvider);
     final user = ref.watch(currentUserProvider);
-    final featured = events.take(2).toList();
-    final upcoming = events.skip(2).toList();
+
+    return eventsAsync.when(
+      loading: () => const Scaffold(body: Center(child: CircularProgressIndicator())),
+      error: (e, st) => Scaffold(body: Center(child: Text('Error loading events: $e'))),
+      data: (events) {
+        final featured = events.take(2).toList();
+        final upcoming = events.skip(2).toList();
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -52,12 +57,14 @@ class HomeScreen extends ConsumerWidget {
                       padding: const EdgeInsets.only(bottom: 16),
                       child: EventCard(event: e, compact: true),
                     )),
-                const SizedBox(height: 16),
-              ]),
+                  const SizedBox(height: 16),
+                ]),
+              ),
             ),
-          ),
-        ],
-      ),
+          ],
+        ),
+      );
+      },
     );
   }
 }
@@ -196,7 +203,7 @@ class _CategoryRow extends ConsumerWidget {
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: kCategories.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        separatorBuilder: (_, _) => const SizedBox(width: 8),
         itemBuilder: (context, i) {
           final cat = kCategories[i];
           final isActive = cat == selected;

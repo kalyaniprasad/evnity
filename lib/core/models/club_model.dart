@@ -8,6 +8,10 @@ class ClubModel {
   final int eventCount;
   final String facultyMentor;
   final int totalRegistrations;
+  final String tagline;
+  final String email;
+  final String founded;
+  final String location;
 
   const ClubModel({
     required this.id,
@@ -19,6 +23,10 @@ class ClubModel {
     required this.eventCount,
     this.facultyMentor = '',
     this.totalRegistrations = 0,
+    this.tagline = '',
+    this.email = '',
+    this.founded = '',
+    this.location = '',
   });
 
   /// Returns up to 2 initials from the club name for avatar display.

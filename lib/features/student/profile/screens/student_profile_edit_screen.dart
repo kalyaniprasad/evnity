@@ -63,16 +63,24 @@ class _StudentProfileEditScreenState
     notifier.setYear(_selectedYear);
     notifier.setBio(_bioCtrl.text.trim());
 
-    // Commit alias back to the main user provider
-    notifier.save();
+    try {
+      // Commit alias back to the main user provider
+      await notifier.save();
 
-    await Future.delayed(const Duration(milliseconds: 400));
-    setState(() => _saving = false);
-
-    if (mounted) {
-      showAppSnackbar(context, 'Profile updated successfully!',
-          type: SnackbarType.success);
-      Navigator.pop(context);
+      if (mounted) {
+        showAppSnackbar(context, 'Profile updated successfully!',
+            type: SnackbarType.success);
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      if (mounted) {
+        showAppSnackbar(context, 'Failed to update profile: $e',
+            type: SnackbarType.error);
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _saving = false);
+      }
     }
   }
 

@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/theme.dart';
 import '../../../../core/widgets/app_snackbar.dart';
 import '../../../../core/providers/providers.dart';
-import '../../../../core/services/auth_service.dart';
 import '../../providers/club_providers.dart';
 import '../../models/models.dart';
 
@@ -17,7 +16,8 @@ class ClubProfileScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final profile = ref.watch(clubProfileProvider);
     final stats = ref.watch(clubStatsProvider);
-    final events = ref.watch(clubEventsProvider);
+    final eventsAsync = ref.watch(clubEventsProvider);
+    final events = eventsAsync.valueOrNull ?? [];
 
     // Up to 3 most recent events for the overview
     final recentEvents = events.take(3).toList();

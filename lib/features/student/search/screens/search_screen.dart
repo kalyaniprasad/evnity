@@ -3,8 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/theme.dart';
 import '../../../../core/providers/student_providers.dart';
-import '../../../../core/mock_data/mock_data.dart';
 import '../../../../core/models/club_model.dart';
+import '../../../../core/mock_data/mock_data.dart';
 import '../../../student/home/widgets/event_card.dart';
 
 class SearchScreen extends ConsumerStatefulWidget {
@@ -29,6 +29,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     final searchNotifier = ref.read(searchProvider.notifier);
     final filteredEvents = ref.watch(filteredEventsProvider);
     final filteredClubs = ref.watch(filteredClubsProvider);
+    final allClubsAsync = ref.watch(allClubsProvider);
+    final allClubs = allClubsAsync.valueOrNull ?? [];
     final hasQuery = searchState.query.isNotEmpty;
     final hasFilter = hasQuery || searchState.selectedCategory != 'All';
 
@@ -174,13 +176,13 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                       height: 116,
                       child: ListView.separated(
                         scrollDirection: Axis.horizontal,
-                        itemCount: kMockClubs.length,
-                        separatorBuilder: (_, __) =>
+                        itemCount: allClubs.length,
+                        separatorBuilder: (_, _) =>
                             const SizedBox(width: 12),
                         itemBuilder: (context, i) => _ClubCard(
-                          club: kMockClubs[i],
+                          club: allClubs[i],
                           onTap: () =>
-                              context.push('/student/club/${kMockClubs[i].id}'),
+                              context.push('/student/club/${allClubs[i].id}'),
                         ),
                       ),
                     ),

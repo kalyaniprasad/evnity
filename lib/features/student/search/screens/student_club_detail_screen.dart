@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import '../../../../core/theme/theme.dart';
 import '../../../../core/providers/student_providers.dart';
-import '../../../../core/mock_data/mock_data.dart';
 import '../../../../core/models/club_model.dart';
 
 // ── Student Club Detail Screen ─────────────────────────────────────────────────
@@ -25,8 +23,9 @@ class StudentClubDetailScreen extends ConsumerWidget {
     }
 
     // Events organised by this club
+    final allEvents = ref.watch(studentEventProvider).valueOrNull ?? [];
     final clubEvents =
-        kMockEvents.where((e) => e.clubName == club.name).toList();
+        allEvents.where((e) => e.hostClubId == club.id).toList();
 
     final catColor = _categoryColor(club.category);
 

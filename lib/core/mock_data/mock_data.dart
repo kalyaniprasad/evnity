@@ -5,7 +5,9 @@ final List<EventModel> kMockEvents = [
   const EventModel(
     id: 'e1',
     title: 'TechFest 2025 — National Hackathon',
+    hostClubId: 'c1',
     clubName: 'CodeCraft Club',
+    organizerName: 'CodeCraft Club',
     clubLogoUrl: '',
     date: 'Sat, 15 Mar 2026',
     time: '9:00 AM',
@@ -21,7 +23,9 @@ final List<EventModel> kMockEvents = [
   const EventModel(
     id: 'e2',
     title: 'Culturals Night — Echoes of India',
+    hostClubId: 'c2',
     clubName: 'Rangmanch Cultural Club',
+    organizerName: 'Rangmanch Cultural Club',
     clubLogoUrl: '',
     date: 'Sat, 21 Mar 2026',
     time: '6:00 PM',
@@ -37,7 +41,9 @@ final List<EventModel> kMockEvents = [
   const EventModel(
     id: 'e3',
     title: 'Inter-College Basketball Tournament',
+    hostClubId: 'c3',
     clubName: 'Sports Council',
+    organizerName: 'Sports Council',
     clubLogoUrl: '',
     date: 'Mon, 23 Mar 2026',
     time: '8:00 AM',
@@ -53,7 +59,9 @@ final List<EventModel> kMockEvents = [
   const EventModel(
     id: 'e4',
     title: 'UI/UX Design Workshop',
+    hostClubId: 'c4',
     clubName: 'Design Collective',
+    organizerName: 'Design Collective',
     clubLogoUrl: '',
     date: 'Thu, 26 Mar 2026',
     time: '2:00 PM',
@@ -69,7 +77,9 @@ final List<EventModel> kMockEvents = [
   const EventModel(
     id: 'e5',
     title: 'Entrepreneurship Summit 2025',
+    hostClubId: 'c5',
     clubName: 'E-Cell',
+    organizerName: 'E-Cell',
     clubLogoUrl: '',
     date: 'Fri, 3 Apr 2026',
     time: '10:00 AM',
@@ -85,7 +95,9 @@ final List<EventModel> kMockEvents = [
   const EventModel(
     id: 'e6',
     title: 'Photography Walk — Monsoon Edition',
+    hostClubId: 'c6',
     clubName: 'Shutter Club',
+    organizerName: 'Shutter Club',
     clubLogoUrl: '',
     date: 'Sun, 5 Apr 2026',
     time: '7:00 AM',

@@ -1,18 +1,22 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import '../../../../core/theme/theme.dart';
 
 class UploadPosterWidget extends StatelessWidget {
-  final bool isSelected;
+  final File? imageFile;
+  final String? existingImageUrl;
   final VoidCallback onTap;
 
   const UploadPosterWidget({
     super.key,
-    required this.isSelected,
+    required this.imageFile,
+    this.existingImageUrl,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
+    final isSelected = imageFile != null || (existingImageUrl != null && existingImageUrl!.isNotEmpty);
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
@@ -28,37 +32,55 @@ class UploadPosterWidget extends StatelessWidget {
             strokeAlign: BorderSide.strokeAlignInside,
           ),
         ),
-        child: isSelected
-            ? Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Container(
-                    width: 52,
-                    height: 52,
-                    decoration: BoxDecoration(
-                      color: AppColors.primaryBorder,
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: const Icon(
-                      Icons.check_circle_rounded,
-                      size: 28,
-                      color: AppColors.primary,
-                    ),
+          child: isSelected
+              ? ClipRRect(
+                  borderRadius: BorderRadius.circular(18),
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      if (imageFile != null)
+                        Image.file(
+                          imageFile!,
+                          fit: BoxFit.cover,
+                        )
+                      else if (existingImageUrl != null)
+                        Image.network(
+                          existingImageUrl!,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, _, _) => const Center(child: Icon(Icons.error)),
+                        ),
+                      Container(
+                        color: Colors.black.withValues(alpha: 0.3),
+                      ),
+                      Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Container(
+                              width: 44,
+                              height: 44,
+                              decoration: BoxDecoration(
+                                color: Colors.black.withValues(alpha: 0.5),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Icon(
+                                Icons.edit_rounded,
+                                size: 22,
+                                color: Colors.white,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            const Text(
+                              'Tap to change image',
+                              style: TextStyle(color: Colors.white, fontSize: 12),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 10),
-                  Text(
-                    'Poster Selected',
-                    style: AppTextStyles.labelM
-                        .copyWith(color: AppColors.primary),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Tap to change image',
-                    style: AppTextStyles.caption,
-                  ),
-                ],
-              )
-            : Column(
+                )
+              : Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Container(

@@ -1,58 +1,34 @@
+import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/models.dart';
+import '../../../core/models/message_model.dart';
+import '../../../core/providers/student_providers.dart'; // To get chatRepositoryProvider
+
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // CLUB EVENTS PROVIDER
 // ═══════════════════════════════════════════════════════════════════════════════
 
-class ClubEventsNotifier extends Notifier<List<ClubEvent>> {
-  @override
-  List<ClubEvent> build() => kMockClubEvents;
+final clubEventsProvider = StreamProvider<List<ClubEvent>>((ref) {
+  final user = ref.watch(currentUserProvider);
+  if (user.id.isEmpty) return Stream.value([]);
 
-  void addEvent(ClubEvent event) => state = [...state, event];
-
-  void deleteEvent(String id) =>
-      state = state.where((e) => e.id != id).toList();
-
-  void toggleStatus(String id) {
-    state = [
-      for (final e in state)
-        if (e.id == id)
-          e.copyWith(
-            status: e.status == EventStatus.published
-                ? EventStatus.draft
-                : EventStatus.published,
-          )
-        else
-          e,
-    ];
-  }
-
-  ClubEvent? byId(String id) {
-    try {
-      return state.firstWhere((e) => e.id == id);
-    } catch (_) {
-      return null;
-    }
-  }
-}
-
-final clubEventsProvider =
-    NotifierProvider<ClubEventsNotifier, List<ClubEvent>>(
-        ClubEventsNotifier.new);
+  final repo = ref.watch(eventRepositoryProvider);
+  return repo.streamClubEvents(user.id);
+});
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // CLUB STATS PROVIDER  (derived — no backend needed)
 // ═══════════════════════════════════════════════════════════════════════════════
 
 final clubStatsProvider = Provider<ClubStats>((ref) {
-  final events = ref.watch(clubEventsProvider);
+  final eventsAsync = ref.watch(clubEventsProvider);
+  final events = eventsAsync.valueOrNull ?? [];
+
   return ClubStats(
-    activeEvents:
-        events.where((e) => e.status == EventStatus.published).length,
-    totalRegistrations:
-        events.fold(0, (sum, e) => sum + e.registrationCount),
-    unreadMessages: events.fold(0, (sum, e) => sum + e.messageCount),
+    activeEvents: events.length, // Let's just consider all as active for now
+    totalRegistrations: events.fold(0, (sum, e) => sum + e.registrationCount),
+    unreadMessages: 0, // Mock for now
     totalEvents: events.length,
   );
 });
@@ -61,35 +37,43 @@ final clubStatsProvider = Provider<ClubStats>((ref) {
 // DISCUSSION PROVIDER
 // ═══════════════════════════════════════════════════════════════════════════════
 
-class ClubDiscussionNotifier extends Notifier<List<ClubMessage>> {
-  @override
-  List<ClubMessage> build() => kMockClubMessages;
+// clubDiscussionStreamProvider streams messages from a particular event
+// Since ClubChat represents organizers viewing the same chat room, we reuse the core ChatRepository stream
+final clubDiscussionStreamProvider = StreamProvider.family<List<MessageModel>, String>((ref, eventId) {
+  final repo = ref.watch(chatRepositoryProvider);
+  return repo.streamEventMessages(eventId);
+});
 
-  void sendMessage(String text) {
-    final now = DateTime.now();
-    final h = now.hour > 12
-        ? now.hour - 12
-        : now.hour == 0
-            ? 12
-            : now.hour;
-    final m = now.minute.toString().padLeft(2, '0');
-    final period = now.hour >= 12 ? 'PM' : 'AM';
-    state = [
-      ...state,
-      ClubMessage(
-        id: 'cm_${now.millisecondsSinceEpoch}',
-        senderAlias: 'CodeCraft Organizer',
-        message: text,
-        timestamp: '$h:$m $period',
-        senderType: ClubMessageSender.organizer,
-      ),
-    ];
+// Helper for clubs to send messages
+class ClubDiscussionHelper {
+  final Ref ref;
+  ClubDiscussionHelper(this.ref);
+
+  Future<void> sendMessage(String eventId, String text) async {
+    final user = ref.read(currentUserProvider);
+    if (user.id.isEmpty) return; // Should ideally be club check
+
+    // As a simple shortcut for now, an organizer alias is used
+    final aliasName = '${user.aliasName} Organizer';
+    final repo = ref.read(chatRepositoryProvider);
+    final dt = DateTime.now();
+    final isPM = dt.hour >= 12;
+    final hour = dt.hour > 12 ? dt.hour - 12 : (dt.hour == 0 ? 12 : dt.hour);
+    final min = dt.minute.toString().padLeft(2, '0');
+    final formattedTime = '$hour:$min ${isPM ? 'PM' : 'AM'}';
+
+    await repo.sendMessage(
+      eventId: eventId,
+      senderId: user.id,
+      senderAlias: aliasName,
+      message: text,
+      senderTypeStr: 'organizer', // Clubs use this provider
+      formattedTime: formattedTime,
+    );
   }
 }
 
-final clubDiscussionProvider =
-    NotifierProvider<ClubDiscussionNotifier, List<ClubMessage>>(
-        ClubDiscussionNotifier.new);
+final clubDiscussionHelperProvider = Provider<ClubDiscussionHelper>((ref) => ClubDiscussionHelper(ref));
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // CREATE EVENT FORM PROVIDER
@@ -102,7 +86,7 @@ class CreateEventState {
   final String description;
   final String date;
   final String time;
-  final bool posterSelected;
+  final File? posterFile;
 
   const CreateEventState({
     this.title = '',
@@ -111,7 +95,7 @@ class CreateEventState {
     this.description = '',
     this.date = '',
     this.time = '',
-    this.posterSelected = false,
+    this.posterFile,
   });
 
   bool get isValid =>
@@ -119,7 +103,8 @@ class CreateEventState {
       venue.trim().isNotEmpty &&
       description.trim().isNotEmpty &&
       date.isNotEmpty &&
-      time.isNotEmpty;
+      time.isNotEmpty &&
+      posterFile != null;
 
   CreateEventState copyWith({
     String? title,
@@ -128,7 +113,7 @@ class CreateEventState {
     String? description,
     String? date,
     String? time,
-    bool? posterSelected,
+    File? posterFile,
   }) =>
       CreateEventState(
         title: title ?? this.title,
@@ -137,7 +122,7 @@ class CreateEventState {
         description: description ?? this.description,
         date: date ?? this.date,
         time: time ?? this.time,
-        posterSelected: posterSelected ?? this.posterSelected,
+        posterFile: posterFile ?? this.posterFile,
       );
 }
 
@@ -151,8 +136,7 @@ class CreateEventNotifier extends Notifier<CreateEventState> {
   void setDescription(String v) => state = state.copyWith(description: v);
   void setDate(String v) => state = state.copyWith(date: v);
   void setTime(String v) => state = state.copyWith(time: v);
-  void togglePoster() =>
-      state = state.copyWith(posterSelected: !state.posterSelected);
+  void setPoster(File? file) => state = state.copyWith(posterFile: file);
   void reset() => state = const CreateEventState();
 }
 
@@ -222,18 +206,45 @@ class ClubProfileModel {
 }
 
 class ClubProfileNotifier extends Notifier<ClubProfileModel> {
+  bool _initialized = false;
+
   @override
-  ClubProfileModel build() => const ClubProfileModel(
-        name: 'CodeCraft Club',
-        tagline: 'Build. Innovate. Inspire.',
-        description:
-            'CodeCraft Club is the premier technical club on campus. We organize hackathons, workshops, and seminars to build the next generation of developers. We believe in learning by doing and creating impact through code.',
-        category: 'Technical',
-        facultyMentor: 'Dr. Rajesh Sharma',
-        email: 'codecraft@college.edu',
-        founded: '2019',
-        location: 'Main Campus, Block D',
+  ClubProfileModel build() {
+    if (!_initialized) {
+      _initialized = true;
+      Future.microtask(_fetchProfile);
+    }
+    return const ClubProfileModel(
+      name: '',
+      tagline: '',
+      description: '',
+      category: 'Technical',
+      facultyMentor: '',
+      email: '',
+      founded: '',
+      location: '',
+    );
+  }
+
+  Future<void> _fetchProfile() async {
+    final user = ref.read(currentUserProvider);
+    if (user.id.isEmpty) return;
+
+    final repo = ref.read(userRepositoryProvider);
+    final club = await repo.getClub(user.id);
+    if (club != null) {
+      state = ClubProfileModel(
+        name: club.name.isNotEmpty ? club.name : state.name,
+        tagline: club.tagline.isNotEmpty ? club.tagline : state.tagline,
+        description: club.description.isNotEmpty ? club.description : state.description,
+        category: club.category.isNotEmpty ? club.category : state.category,
+        facultyMentor: club.facultyMentor.isNotEmpty ? club.facultyMentor : state.facultyMentor,
+        email: club.email.isNotEmpty ? club.email : state.email,
+        founded: club.founded.isNotEmpty ? club.founded : state.founded,
+        location: club.location.isNotEmpty ? club.location : state.location,
       );
+    }
+  }
 
   void update(ClubProfileModel updated) => state = updated;
 

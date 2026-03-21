@@ -9,12 +9,17 @@ class NotificationsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final notifications = ref.watch(notificationProvider);
-    final notifier = ref.read(notificationProvider.notifier);
+    final notificationsAsync = ref.watch(notificationProvider);
     final unread = ref.watch(unreadCountProvider);
+    final user = ref.watch(currentUserProvider);
+    final repo = ref.read(notificationRepositoryProvider);
 
-    final unreadList = notifications.where((n) => !n.isRead).toList();
-    final readList = notifications.where((n) => n.isRead).toList();
+    return notificationsAsync.when(
+      loading: () => const Scaffold(body: Center(child: CircularProgressIndicator())),
+      error: (err, st) => Scaffold(body: Center(child: Text('Error: $err'))),
+      data: (notifications) {
+        final unreadList = notifications.where((n) => !n.isRead).toList();
+        final readList = notifications.where((n) => n.isRead).toList();
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -27,7 +32,7 @@ class NotificationsScreen extends ConsumerWidget {
         actions: [
           if (unread > 0)
             TextButton(
-              onPressed: notifier.markAllAsRead,
+              onPressed: () => repo.markAllAsRead(user.id),
               child: Text(
                 'Mark all read',
                 style: AppTextStyles.labelS.copyWith(color: AppColors.primary),
@@ -75,8 +80,7 @@ class NotificationsScreen extends ConsumerWidget {
                       delegate: SliverChildBuilderDelegate(
                         (context, i) => _NotificationTile(
                           notification: unreadList[i],
-                          onTap: () =>
-                              notifier.markAsRead(unreadList[i].id),
+                          onTap: () => repo.markAsRead(unreadList[i].id),
                         ),
                         childCount: unreadList.length,
                       ),
@@ -107,6 +111,8 @@ class NotificationsScreen extends ConsumerWidget {
                 ],
               ],
             ),
+    );
+      },
     );
   }
 }
