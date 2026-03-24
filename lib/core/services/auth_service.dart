@@ -36,7 +36,25 @@ class AuthService {
       'createdAt': FieldValue.serverTimestamp(),
     });
 
+    // Send email verification to the newly created user
+    await credential.user!.sendEmailVerification();
+
     return credential;
+  }
+
+  // ── Reload user and check email verification ─────────────────────────────
+  /// Reloads the Firebase user from the server and returns whether the email
+  /// is now verified. Used by the polling loop in EmailVerificationScreen.
+  Future<bool> reloadAndCheckVerified() async {
+    final user = _auth.currentUser;
+    if (user == null) return false;
+    await user.reload();
+    return _auth.currentUser?.emailVerified ?? false;
+  }
+
+  // ── Resend verification email ─────────────────────────────────────────────
+  Future<void> resendVerificationEmail() async {
+    await _auth.currentUser?.sendEmailVerification();
   }
 
   // ── Sign In with Email ────────────────────────────────────────────────────

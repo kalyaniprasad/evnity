@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -6,6 +7,8 @@ import 'package:go_router/go_router.dart';
 import '../../features/splash/screens/splash_screen.dart';
 import '../../features/onboarding/screens/onboarding_screen.dart';
 import '../../features/auth/screens/auth_screen.dart';
+import '../../features/auth/screens/email_verification_screen.dart';
+import '../../features/auth/screens/registration_success_screen.dart';
 
 // Student shell + screens
 import '../../features/student/shell/student_shell.dart';
@@ -61,29 +64,48 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       final user = userAsync.valueOrNull;
       final currentPath = state.uri.path;
 
-      // ── Exact match for the three pre-auth screens ─────────────────────
-      // BUG-FIX: do NOT use startsWith('/') — every path starts with '/'!
-      final isPublic = currentPath == '/' ||
+      // ── Route categories ────────────────────────────────────────────────────
+      // Pre-auth: unauthenticated OK, authenticated gets bounced to home
+      final isPreAuth = currentPath == '/' ||
           currentPath == '/onboarding' ||
           currentPath == '/auth';
 
-      // ── Unauthenticated ───────────────────────────────────────────────
+      // Verification flow: these screens manage their own navigation,
+      // the router should not redirect authenticated users away from them.
+      final isVerificationFlow =
+          currentPath == '/verify-email' || currentPath == '/success';
+
+      // ── Unauthenticated ──────────────────────────────────────────────────────
       if (user == null) {
-        return isPublic ? null : '/auth';
+        // Always allow pre-auth screens; send everything else to /auth
+        if (isPreAuth || isVerificationFlow) return null;
+        return '/auth';
       }
 
-      // ── Authenticated – resolve role ──────────────────────────────────
+      // ── Authenticated: email not yet verified ──────────────────────────────
+      // IMPORTANT: Read emailVerified directly from FirebaseAuth.instance.currentUser,
+      // NOT from the stream user. The authStateChanges() stream does NOT re-emit
+      // when user.reload() is called, so stream value is stale after verification.
+      final isEmailVerified =
+          FirebaseAuth.instance.currentUser?.emailVerified ?? false;
+      if (!isEmailVerified && !isVerificationFlow) {
+        if (!isPreAuth) return '/verify-email';
+      }
+
+      // ── Authenticated: let verification-flow screens self-navigate ─────────
+      if (isVerificationFlow) return null;
+
+      // ── Authenticated – resolve role ────────────────────────────────────────
       final role = roleAsync.valueOrNull;
 
       // If role is unknown (Firestore error / still resolving) and the user
       // is already inside the app, allow the navigation rather than looping.
       if (role == null) {
-        // Kick off the public screens toward a safe default
-        return isPublic ? '/home' : null;
+        return isPreAuth ? '/home' : null;
       }
 
       // Push authenticated users away from pre-auth screens
-      if (isPublic) {
+      if (isPreAuth) {
         return role == 'club' ? '/club/home' : '/home';
       }
 
@@ -114,6 +136,18 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         name: 'auth',
         pageBuilder: (ctx, state) =>
             _fadePage(state.pageKey, const AuthScreen()),
+      ),
+      GoRoute(
+        path: '/verify-email',
+        name: 'verifyEmail',
+        pageBuilder: (ctx, state) =>
+            _fadePage(state.pageKey, const EmailVerificationScreen()),
+      ),
+      GoRoute(
+        path: '/success',
+        name: 'registrationSuccess',
+        pageBuilder: (ctx, state) =>
+            _fadePage(state.pageKey, const RegistrationSuccessScreen()),
       ),
 
       // ── Student: profile edit (outside shell, full-screen slide) ───────────

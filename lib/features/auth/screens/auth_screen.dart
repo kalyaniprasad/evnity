@@ -64,11 +64,18 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
       return;
     }
 
-    // Success → get role and navigate
-    if (mounted) {
-      final role = await ref.read(userRoleProvider.future);
-      _navigateForRole(role);
+    if (!mounted) return;
+
+    // Brand-new email registration → redirect to verification screen
+    if (formState.isNewEmailRegistration) {
+      ref.read(authFormProvider.notifier).clearNewRegistration();
+      context.go('/verify-email');
+      return;
     }
+
+    // Existing sign-in → navigate by role
+    final role = await ref.read(userRoleProvider.future);
+    _navigateForRole(role);
   }
 
   // ── Google Sign-In ────────────────────────────────────────────────────────
@@ -112,10 +119,17 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
         }
       }
 
-      if (mounted) {
-        final role = await ref.read(userRoleProvider.future);
-        _navigateForRole(role);
+      if (!mounted) return;
+
+      // Brand-new Google user → show success animation first
+      if (credential.additionalUserInfo?.isNewUser == true) {
+        context.go('/success');
+        return;
       }
+
+      // Returning Google user → navigate by role
+      final role = await ref.read(userRoleProvider.future);
+      _navigateForRole(role);
     } on Exception catch (e) {
       if (mounted) {
         _showErrorSnackBar('Google sign-in failed: ${e.toString()}');
