@@ -125,7 +125,7 @@ class ProfileScreen extends ConsumerWidget {
                     _InfoRow(
                       icon: Icons.person_outline_rounded,
                       label: 'Full Name',
-                      value: user.aliasName,
+                      value: user.name.isNotEmpty ? user.name : 'Not provided',
                     ),
                     _Divider(),
                     _InfoRow(
@@ -140,21 +140,22 @@ class ProfileScreen extends ConsumerWidget {
                     _InfoRow(
                       icon: Icons.school_outlined,
                       label: 'Branch',
-                      value: user.branch ?? 'Computer Science',
+                      value: (user.branch?.isNotEmpty == true) ? user.branch! : 'Not provided',
+                      valueColor: (user.branch?.isEmpty ?? true) ? AppColors.textMuted : null,
                     ),
                     _Divider(),
                     _InfoRow(
                       icon: Icons.calendar_month_outlined,
                       label: 'Academic Year',
-                      value: user.year ?? 'First Year',
+                      value: (user.year?.isNotEmpty == true) ? user.year! : 'Not provided',
+                      valueColor: (user.year?.isEmpty ?? true) ? AppColors.textMuted : null,
                     ),
                     _Divider(),
                     _InfoRow(
                       icon: Icons.info_outline_rounded,
                       label: 'Bio',
-                      value: (user.bio == null || user.bio!.isEmpty)
-                          ? 'Passionate about technology and innovation.'
-                          : user.bio!,
+                      value: (user.bio?.isNotEmpty == true) ? user.bio! : 'Not provided',
+                      valueColor: (user.bio?.isEmpty ?? true) ? AppColors.textMuted : null,
                     ),
                   ]),
                   const SizedBox(height: 28),

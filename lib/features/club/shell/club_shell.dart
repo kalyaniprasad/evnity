@@ -1,20 +1,43 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/theme.dart';
+import '../../../core/widgets/app_snackbar.dart';
+import '../../club/providers/club_providers.dart';
 
-class ClubShell extends StatelessWidget {
+class ClubShell extends ConsumerStatefulWidget {
   final StatefulNavigationShell navigationShell;
   const ClubShell({super.key, required this.navigationShell});
 
   @override
+  ConsumerState<ClubShell> createState() => _ClubShellState();
+}
+
+class _ClubShellState extends ConsumerState<ClubShell> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final incomplete = ref.read(isClubProfileIncompleteProvider);
+      if (incomplete && mounted) {
+        showAppSnackbar(
+          context,
+          '📋 Your club profile is incomplete. Nav to Profile to update it.',
+          type: SnackbarType.warning,
+        );
+      }
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: navigationShell,
+      body: widget.navigationShell,
       bottomNavigationBar: _ClubBottomNav(
-        currentIndex: navigationShell.currentIndex,
-        onTap: (index) => navigationShell.goBranch(
+        currentIndex: widget.navigationShell.currentIndex,
+        onTap: (index) => widget.navigationShell.goBranch(
           index,
-          initialLocation: index == navigationShell.currentIndex,
+          initialLocation: index == widget.navigationShell.currentIndex,
         ),
       ),
     );

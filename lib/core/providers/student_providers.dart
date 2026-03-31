@@ -5,6 +5,7 @@ import 'auth_provider.dart';
 import '../repositories/notification_repository.dart';
 import '../repositories/chat_repository.dart';
 import '../services/push_notification_service.dart';
+import '../../../core/utils/alias_generator.dart'; // Added this import
 
 // ═══════════════════════════════════════════════════════════════════════════
 // EVENTS PROVIDER
@@ -129,6 +130,7 @@ class CurrentUserNotifier extends Notifier<UserModel> {
       return const UserModel(
         id: '',
         email: '',
+        name: 'Guest',
         aliasName: 'Guest',
         role: 'student',
       );
@@ -141,6 +143,7 @@ class CurrentUserNotifier extends Notifier<UserModel> {
     return UserModel(
       id: firebaseUser.uid,
       email: firebaseUser.email ?? '',
+      name: firebaseUser.displayName ?? '',
       aliasName: firebaseUser.displayName?.isNotEmpty == true
           ? firebaseUser.displayName!
           : (firebaseUser.email?.split('@').first ?? 'User'),
@@ -151,12 +154,22 @@ class CurrentUserNotifier extends Notifier<UserModel> {
 
   Future<void> _fetchUser(String uid, String? email, String? name, String? photoUrl) async {
     final userRepository = ref.read(userRepositoryProvider);
-    final dbUser = await userRepository.getUser(uid);
+    var dbUser = await userRepository.getUser(uid);
+    final notifRepo = ref.read(notificationRepositoryProvider);
+
+    if (dbUser == null) {
+      // Possible race condition: auth state changed before AuthService finished writing to Firestore.
+      // Wait briefly and try fetching again.
+      await Future.delayed(const Duration(milliseconds: 1000));
+      dbUser = await userRepository.getUser(uid);
+    }
 
     if (dbUser != null) {
       state = dbUser;
       // Start listening for notifications once user is loaded
       PushNotificationService.startFirestoreListener(uid);
+      // Ensure a profile-incomplete notification exists if needed
+      _checkAndEnsureProfileNotification(dbUser, notifRepo);
     } else {
       // User doc might not exist yet if just registered via Google, create it
       final roleAsync = ref.read(userRoleProvider);
@@ -165,7 +178,8 @@ class CurrentUserNotifier extends Notifier<UserModel> {
       final newUser = UserModel(
         id: uid,
         email: email ?? '',
-        aliasName: name ?? (email?.split('@').first ?? 'User'),
+        name: name ?? (email?.split('@').first ?? 'User'),
+        aliasName: AliasGenerator.generate(),
         role: role,
         avatarUrl: photoUrl,
       );
@@ -173,6 +187,33 @@ class CurrentUserNotifier extends Notifier<UserModel> {
       state = newUser;
       // Start listening for notifications for newly created user
       PushNotificationService.startFirestoreListener(uid);
+      // New user always has an incomplete profile
+      await notifRepo.ensureProfileIncompleteNotification(
+        userId: uid,
+        role: role,
+      );
+    }
+  }
+
+  void _checkAndEnsureProfileNotification(
+    UserModel user,
+    NotificationRepository notifRepo,
+  ) {
+    final isStudent = user.role == 'student';
+    final bool incomplete = isStudent
+        ? ((user.branch == null || user.branch!.isEmpty) ||
+           (user.year == null || user.year!.isEmpty) ||
+           (user.bio == null || user.bio!.isEmpty))
+        : false; // Club profile completeness is checked separately
+
+    if (incomplete) {
+      notifRepo.ensureProfileIncompleteNotification(
+        userId: user.id,
+        role: user.role,
+      );
+    } else if (isStudent) {
+      // Profile is now complete — remove the reminder notification
+      notifRepo.dismissProfileIncompleteNotification(user.id);
     }
   }
 
@@ -182,6 +223,7 @@ class CurrentUserNotifier extends Notifier<UserModel> {
 
   void updateProfile(StudentProfileEditState editState) {
     state = state.copyWith(
+      name: editState.fullName,
       aliasName: editState.aliasName,
       branch: editState.branch,
       year: editState.year,
@@ -195,6 +237,18 @@ final currentUserProvider =
 
 // User Repository Provider
 final userRepositoryProvider = Provider<UserRepository>((ref) => UserRepository());
+
+// ─── Profile Completion Check ─────────────────────────────────────────────────
+
+/// True when the logged-in student's profile is not fully filled in.
+/// Watches live so it updates the moment the user saves their profile.
+final isProfileIncompleteProvider = Provider<bool>((ref) {
+  final user = ref.watch(currentUserProvider);
+  if (user.id.isEmpty || user.role != 'student') return false;
+  return (user.branch == null || user.branch!.isEmpty) ||
+         (user.year == null || user.year!.isEmpty) ||
+         (user.bio == null || user.bio!.isEmpty);
+});
 
 // ═══════════════════════════════════════════════════════════════════════════
 // SEARCH PROVIDER
@@ -313,7 +367,7 @@ class StudentProfileEditState {
     this.aliasName = '',
     this.fullName = '',
     this.branch = '',
-    this.year = 'First Year',
+    this.year = '',
     this.bio = '',
   });
 
@@ -340,9 +394,9 @@ class StudentProfileEditNotifier extends Notifier<StudentProfileEditState> {
     final user = ref.read(currentUserProvider);
     return StudentProfileEditState(
       aliasName: user.aliasName,
-      fullName: user.aliasName, // We can keep fullName mapping to aliasName if there is no separate fullName field
+      fullName: user.name, // Mapping to the real name field
       branch: user.branch ?? '', 
-      year: user.year ?? 'First Year',
+      year: user.year ?? '',
       bio: user.bio ?? '',
     );
   }
@@ -360,8 +414,8 @@ class StudentProfileEditNotifier extends Notifier<StudentProfileEditState> {
 
     final repo = ref.read(userRepositoryProvider);
 
-    // Using aliasName mapped to the form aliasName field
     final updatedData = {
+      'name': state.fullName,
       'aliasName': state.aliasName,
       'branch': state.branch,
       'year': state.year,
@@ -372,6 +426,16 @@ class StudentProfileEditNotifier extends Notifier<StudentProfileEditState> {
 
     // Refresh the local State
     ref.read(currentUserProvider.notifier).updateProfile(state);
+
+    // Dismiss the profile-completion notification if profile is now complete
+    final isNowComplete = state.branch.isNotEmpty &&
+        state.year.isNotEmpty &&
+        state.bio.isNotEmpty;
+    if (isNowComplete) {
+      await ref
+          .read(notificationRepositoryProvider)
+          .dismissProfileIncompleteNotification(user.id);
+    }
   }
 }
 

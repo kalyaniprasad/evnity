@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/models.dart';
 import '../../../core/models/message_model.dart';
 import '../../../core/providers/student_providers.dart'; // To get chatRepositoryProvider
+import '../../../core/repositories/notification_repository.dart';
 
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -231,6 +232,7 @@ class ClubProfileNotifier extends Notifier<ClubProfileModel> {
     if (user.id.isEmpty) return;
 
     final repo = ref.read(userRepositoryProvider);
+    final notifRepo = ref.read(_clubNotifRepoProvider);
     final club = await repo.getClub(user.id);
     if (club != null) {
       state = ClubProfileModel(
@@ -243,6 +245,20 @@ class ClubProfileNotifier extends Notifier<ClubProfileModel> {
         founded: club.founded.isNotEmpty ? club.founded : state.founded,
         location: club.location.isNotEmpty ? club.location : state.location,
       );
+
+      // Check if club profile is incomplete after loading
+      final incomplete = state.tagline.isEmpty ||
+          state.description.isEmpty ||
+          state.facultyMentor.isEmpty ||
+          state.location.isEmpty;
+      if (incomplete) {
+        notifRepo.ensureProfileIncompleteNotification(
+          userId: user.id,
+          role: 'club',
+        );
+      } else {
+        notifRepo.dismissProfileIncompleteNotification(user.id);
+      }
     }
   }
 
@@ -262,3 +278,18 @@ final clubProfileProvider =
     NotifierProvider<ClubProfileNotifier, ClubProfileModel>(
         ClubProfileNotifier.new);
 
+// Internal helper – avoids circular dependency
+final _clubNotifRepoProvider =
+    Provider<NotificationRepository>((ref) => NotificationRepository());
+
+/// True when the club's profile is not fully filled in.
+/// Watches live so it auto-updates when the profile is saved.
+final isClubProfileIncompleteProvider = Provider<bool>((ref) {
+  final profile = ref.watch(clubProfileProvider);
+  final user = ref.watch(currentUserProvider);
+  if (user.id.isEmpty || user.role != 'club') return false;
+  return profile.tagline.isEmpty ||
+         profile.description.isEmpty ||
+         profile.facultyMentor.isEmpty ||
+         profile.location.isEmpty;
+});

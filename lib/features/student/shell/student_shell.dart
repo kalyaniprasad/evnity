@@ -3,24 +3,45 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/providers/student_providers.dart';
+import '../../../core/widgets/app_snackbar.dart';
 
-class StudentShell extends ConsumerWidget {
+class StudentShell extends ConsumerStatefulWidget {
   final StatefulNavigationShell navigationShell;
 
   const StudentShell({super.key, required this.navigationShell});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<StudentShell> createState() => _StudentShellState();
+}
+
+class _StudentShellState extends ConsumerState<StudentShell> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final incomplete = ref.read(isProfileIncompleteProvider);
+      if (incomplete && mounted) {
+        showAppSnackbar(
+          context,
+          '📋 Your profile is incomplete. Nav to Profile to update it.',
+          type: SnackbarType.warning,
+        );
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final unread = ref.watch(unreadCountProvider);
 
     return Scaffold(
-      body: navigationShell,
+      body: widget.navigationShell,
       bottomNavigationBar: _EvnityBottomNav(
-        currentIndex: navigationShell.currentIndex,
+        currentIndex: widget.navigationShell.currentIndex,
         unreadCount: unread,
-        onTap: (index) => navigationShell.goBranch(
+        onTap: (index) => widget.navigationShell.goBranch(
           index,
-          initialLocation: index == navigationShell.currentIndex,
+          initialLocation: index == widget.navigationShell.currentIndex,
         ),
       ),
     );

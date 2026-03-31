@@ -1,7 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import '../utils/alias_generator.dart';
 
 // ── AuthService – Firebase (Email + Google) ────────────────────────────────
 
@@ -32,6 +34,7 @@ class AuthService {
       'uid': credential.user!.uid,
       'email': email,
       'name': name,
+      'aliasName': AliasGenerator.generate(),
       'role': role,
       'createdAt': FieldValue.serverTimestamp(),
     });
@@ -90,10 +93,12 @@ class AuthService {
       // If new user → persist role to Firestore
       if (userCredential.additionalUserInfo?.isNewUser == true) {
         final role = selectedRole ?? 'student';
+        final displayName = userCredential.user!.displayName ?? 'User';
         await _db.collection('users').doc(userCredential.user!.uid).set({
           'uid': userCredential.user!.uid,
           'email': userCredential.user!.email ?? '',
-          'name': userCredential.user!.displayName ?? 'User',
+          'name': displayName,
+          'aliasName': AliasGenerator.generate(),
           'role': role,
           'createdAt': FieldValue.serverTimestamp(),
         });

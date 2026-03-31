@@ -14,7 +14,7 @@ import '../../features/auth/screens/registration_success_screen.dart';
 import '../../features/student/shell/student_shell.dart';
 import '../../features/student/home/screens/home_screen.dart';
 import '../../features/student/calendar/screens/calendar_screen.dart';
-import '../../features/student/calendar/screens/day_events_screen.dart';
+
 import '../../features/student/search/screens/search_screen.dart';
 import '../../features/student/notifications/screens/notifications_screen.dart';
 import '../../features/student/profile/screens/profile_screen.dart';
@@ -218,21 +218,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               name: 'studentCalendar',
               pageBuilder: (ctx, state) =>
                   _noTransitionPage(state.pageKey, const CalendarScreen()),
-              routes: [
-                GoRoute(
-                  path: 'day-events',
-                  name: 'studentDayEvents',
-                  pageBuilder: (ctx, state) {
-                    final extra = state.extra as Map<String, dynamic>?;
-                    final date = extra?['date'] as DateTime? ?? DateTime.now();
-                    final events = extra?['events'] as List<dynamic>? ?? [];
-                    return _slidePage(
-                      state.pageKey,
-                      DayEventsScreen(date: date, events: events.cast()),
-                    );
-                  },
-                ),
-              ],
+              // Day events are now shown inline below the calendar.
             ),
           ]),
           StatefulShellBranch(routes: [

@@ -112,6 +112,16 @@ class _ClubProfileEditScreenState extends ConsumerState<ClubProfileEditScreen> {
 
         // Force refresh currentUserProvider to reflect name change globally
         ref.read(currentUserProvider.notifier).updateAlias(name);
+
+        // Dismiss profile-incomplete notification if profile is now complete
+        final isNowComplete = tagline.isNotEmpty &&
+            description.isNotEmpty &&
+            mentor.isNotEmpty &&
+            location.isNotEmpty;
+        if (isNowComplete) {
+          final notifRepo = ref.read(notificationRepositoryProvider);
+          await notifRepo.dismissProfileIncompleteNotification(user.id);
+        }
       }
 
       if (mounted) {

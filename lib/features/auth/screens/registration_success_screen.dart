@@ -69,6 +69,7 @@ class _RegSuccessState extends ConsumerState<RegistrationSuccessScreen>
   // ── Audio + Haptic ──────────────────────────────────────────────────────────
   final _audio = AudioPlayer();
 
+
   String get _firstName =>
       (FirebaseAuth.instance.currentUser?.displayName ?? 'there')
           .split(' ')

@@ -1,4 +1,4 @@
-enum NotificationType { eventUpdate, reminder, announcement, registration }
+enum NotificationType { eventUpdate, reminder, announcement, registration, profileIncomplete }
 
 class NotificationModel {
   final String id;

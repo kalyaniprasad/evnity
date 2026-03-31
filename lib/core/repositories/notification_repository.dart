@@ -24,6 +24,7 @@ class NotificationRepository {
           case 'eventUpdate': type = NotificationType.eventUpdate; break;
           case 'reminder': type = NotificationType.reminder; break;
           case 'announcement': type = NotificationType.announcement; break;
+          case 'profileIncomplete': type = NotificationType.profileIncomplete; break;
           default: type = NotificationType.announcement; break;
         }
 
@@ -82,6 +83,57 @@ class NotificationRepository {
     }
 
     await batch.commit();
+  }
+
+  // ─── Profile Completion Notifications ────────────────────────────────────────
+
+  /// Creates a "Complete Your Profile" notification for a user if one doesn't
+  /// already exist. Safe to call on every login — idempotent.
+  Future<void> ensureProfileIncompleteNotification({
+    required String userId,
+    required String role, // 'student' or 'club'
+  }) async {
+    try {
+      final existing = await _db
+          .collection('notifications')
+          .where('userId', isEqualTo: userId)
+          .where('type', isEqualTo: 'profileIncomplete')
+          .limit(1)
+          .get();
+      if (existing.docs.isNotEmpty) return; // already exists, skip
+
+      final description = role == 'club'
+          ? 'Add your tagline, description, faculty mentor and location so students can know your club better.'
+          : 'Add your branch, year and bio so others can know you better.';
+
+      await _db.collection('notifications').add({
+        'userId': userId,
+        'title': 'Complete Your Profile ✏️',
+        'description': description,
+        'type': 'profileIncomplete',
+        'isRead': false,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      if (kDebugMode) print('ensureProfileIncompleteNotification error: \$e');
+    }
+  }
+
+  /// Deletes the profile-incomplete notification for a user (called after
+  /// profile is fully completed and saved).
+  Future<void> dismissProfileIncompleteNotification(String userId) async {
+    try {
+      final snapshot = await _db
+          .collection('notifications')
+          .where('userId', isEqualTo: userId)
+          .where('type', isEqualTo: 'profileIncomplete')
+          .get();
+      for (final doc in snapshot.docs) {
+        await doc.reference.delete();
+      }
+    } catch (e) {
+      if (kDebugMode) print('dismissProfileIncompleteNotification error: \$e');
+    }
   }
 
   // ─── Sending Notifications ──────────────────────────────────────────────────
