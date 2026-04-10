@@ -9,15 +9,31 @@ import '../providers/calendar_provider.dart';
 
 // ── Date Helpers ──────────────────────────────────────────────────────────────
 const _monthMap = {
-  'Jan': 1, 'Feb': 2, 'Mar': 3, 'Apr': 4,  'May': 5,  'Jun': 6,
-  'Jul': 7, 'Aug': 8, 'Sep': 9, 'Oct': 10, 'Nov': 11, 'Dec': 12,
+  'Jan': 1,
+  'Feb': 2,
+  'Mar': 3,
+  'Apr': 4,
+  'May': 5,
+  'Jun': 6,
+  'Jul': 7,
+  'Aug': 8,
+  'Sep': 9,
+  'Oct': 10,
+  'Nov': 11,
+  'Dec': 12,
 };
 
 DateTime? _parseMockDate(String date) {
   try {
-    final clean = date.contains(',') ? date.split(', ').last.trim() : date.trim();
-    final parts  = clean.split(' ');
-    return DateTime(int.parse(parts[2]), _monthMap[parts[1]] ?? 1, int.parse(parts[0]));
+    final clean = date.contains(',')
+        ? date.split(', ').last.trim()
+        : date.trim();
+    final parts = clean.split(' ');
+    return DateTime(
+      int.parse(parts[2]),
+      _monthMap[parts[1]] ?? 1,
+      int.parse(parts[0]),
+    );
   } catch (_) {
     return null;
   }
@@ -27,8 +43,19 @@ bool _isSameDay(DateTime a, DateTime b) =>
     a.year == b.year && a.month == b.month && a.day == b.day;
 
 const _months = [
-  '', 'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
+  '',
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
 ];
 
 const _catOrder = ['Technical', 'Cultural', 'Sports', 'Workshop', 'Seminar'];
@@ -47,8 +74,8 @@ class CalendarScreen extends ConsumerStatefulWidget {
 class _CalendarScreenState extends ConsumerState<CalendarScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _listCtrl;
-  late Animation<double>   _listFade;
-  late Animation<Offset>   _listSlide;
+  late Animation<double> _listFade;
+  late Animation<Offset> _listSlide;
 
   @override
   void initState() {
@@ -57,10 +84,11 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen>
       vsync: this,
       duration: const Duration(milliseconds: 340),
     );
-    _listFade  = CurvedAnimation(parent: _listCtrl, curve: Curves.easeOut);
+    _listFade = CurvedAnimation(parent: _listCtrl, curve: Curves.easeOut);
     _listSlide = Tween<Offset>(
-        begin: const Offset(0, 0.07), end: Offset.zero)
-        .animate(CurvedAnimation(parent: _listCtrl, curve: Curves.easeOutCubic));
+      begin: const Offset(0, 0.07),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _listCtrl, curve: Curves.easeOutCubic));
     _listCtrl.forward();
   }
 
@@ -78,15 +106,17 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen>
 
   void _selectDay(DateTime day) {
     ref.read(calendarSelectedDateProvider.notifier).state = day;
-    ref.read(calendarFocusedDateProvider.notifier).state  = day;
-    _listCtrl..reset()..forward();
+    ref.read(calendarFocusedDateProvider.notifier).state = day;
+    _listCtrl
+      ..reset()
+      ..forward();
   }
 
   @override
   Widget build(BuildContext context) {
-    final selected  = ref.watch(calendarSelectedDateProvider);
-    final focused   = ref.watch(calendarFocusedDateProvider);
-    final all       = ref.watch(studentEventProvider).valueOrNull ?? [];
+    final selected = ref.watch(calendarSelectedDateProvider);
+    final focused = ref.watch(calendarFocusedDateProvider);
+    final all = ref.watch(studentEventProvider).valueOrNull ?? [];
     final dayEvents = _eventsForDay(selected, all);
 
     final busyDays = all
@@ -102,7 +132,6 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen>
       body: CustomScrollView(
         physics: const BouncingScrollPhysics(),
         slivers: [
-
           // ── App Bar ──────────────────────────────────────────────────────
           SliverAppBar(
             pinned: true,
@@ -159,12 +188,15 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen>
                           onTap: () => _selectDay(DateTime.now()),
                           child: Container(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 11, vertical: 7),
+                              horizontal: 11,
+                              vertical: 7,
+                            ),
                             decoration: BoxDecoration(
                               color: AppColors.primarySurface,
                               borderRadius: BorderRadius.circular(10),
                               border: Border.all(
-                                  color: AppColors.primaryBorder),
+                                color: AppColors.primaryBorder,
+                              ),
                             ),
                             child: Text(
                               'Today',
@@ -179,16 +211,24 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen>
                         _NavBtn(
                           icon: Icons.chevron_left_rounded,
                           onTap: () {
-                            ref.read(calendarFocusedDateProvider.notifier).state =
-                                DateTime(focused.year, focused.month - 1);
+                            ref
+                                .read(calendarFocusedDateProvider.notifier)
+                                .state = DateTime(
+                              focused.year,
+                              focused.month - 1,
+                            );
                           },
                         ),
                         const SizedBox(width: 4),
                         _NavBtn(
                           icon: Icons.chevron_right_rounded,
                           onTap: () {
-                            ref.read(calendarFocusedDateProvider.notifier).state =
-                                DateTime(focused.year, focused.month + 1);
+                            ref
+                                .read(calendarFocusedDateProvider.notifier)
+                                .state = DateTime(
+                              focused.year,
+                              focused.month + 1,
+                            );
                           },
                         ),
                       ],
@@ -198,11 +238,11 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen>
                   // ── TableCalendar ─────────────────────────────────────────
                   TableCalendar<EventModel>(
                     firstDay: DateTime.utc(2020, 1, 1),
-                    lastDay:  DateTime.utc(2030, 12, 31),
-                    focusedDay:  focused,
+                    lastDay: DateTime.utc(2030, 12, 31),
+                    focusedDay: focused,
                     selectedDayPredicate: (d) => _isSameDay(d, selected),
                     calendarFormat: CalendarFormat.month,
-                    eventLoader:   (d) => _eventsForDay(d, all),
+                    eventLoader: (d) => _eventsForDay(d, all),
                     startingDayOfWeek: StartingDayOfWeek.sunday,
                     headerVisible: false,
 
@@ -225,12 +265,16 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen>
 
                     calendarStyle: const CalendarStyle(
                       outsideDaysVisible: false,
-                      selectedDecoration: BoxDecoration(color: Colors.transparent),
-                      todayDecoration:    BoxDecoration(color: Colors.transparent),
-                      markerDecoration:   BoxDecoration(color: Colors.transparent),
-                      defaultTextStyle:   TextStyle(color: Colors.transparent),
-                      weekendTextStyle:   TextStyle(color: Colors.transparent),
-                      outsideTextStyle:   TextStyle(color: Colors.transparent),
+                      selectedDecoration: BoxDecoration(
+                        color: Colors.transparent,
+                      ),
+                      todayDecoration: BoxDecoration(color: Colors.transparent),
+                      markerDecoration: BoxDecoration(
+                        color: Colors.transparent,
+                      ),
+                      defaultTextStyle: TextStyle(color: Colors.transparent),
+                      weekendTextStyle: TextStyle(color: Colors.transparent),
+                      outsideTextStyle: TextStyle(color: Colors.transparent),
                     ),
 
                     calendarBuilders: CalendarBuilders(
@@ -240,7 +284,8 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen>
                         events: _eventsForDay(day, all),
                         isToday: false,
                         isSelected: _isSameDay(day, selected),
-                        isWeekend: day.weekday == DateTime.saturday ||
+                        isWeekend:
+                            day.weekday == DateTime.saturday ||
                             day.weekday == DateTime.sunday,
                       ),
                       todayBuilder: (ctx, day, _) {
@@ -265,7 +310,8 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen>
 
                     onDaySelected: (sel, _) => _selectDay(sel),
                     onPageChanged: (day) =>
-                    ref.read(calendarFocusedDateProvider.notifier).state = day,
+                        ref.read(calendarFocusedDateProvider.notifier).state =
+                            day,
 
                     rowHeight: 60,
                     daysOfWeekHeight: 30,
@@ -275,7 +321,9 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen>
                   Container(
                     margin: const EdgeInsets.fromLTRB(16, 8, 16, 16),
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 14, vertical: 10),
+                      horizontal: 14,
+                      vertical: 10,
+                    ),
                     decoration: BoxDecoration(
                       color: AppColors.background,
                       borderRadius: BorderRadius.circular(12),
@@ -284,10 +332,10 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen>
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
                         _LegendDot('Technical', AppColors.categoryTechnical),
-                        _LegendDot('Cultural',  AppColors.categoryCultural),
-                        _LegendDot('Sports',    AppColors.categorySports),
-                        _LegendDot('Workshop',  AppColors.categoryWorkshop),
-                        _LegendDot('Seminar',   AppColors.categorySeminar),
+                        _LegendDot('Cultural', AppColors.categoryCultural),
+                        _LegendDot('Sports', AppColors.categorySports),
+                        _LegendDot('Workshop', AppColors.categoryWorkshop),
+                        _LegendDot('Seminar', AppColors.categorySeminar),
                       ],
                     ),
                   ),
@@ -306,7 +354,9 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen>
                   // Blue date pill on the left
                   Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 6),
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
                       color: AppColors.primary,
                       borderRadius: BorderRadius.circular(10),
@@ -344,14 +394,11 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen>
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
               sliver: SliverList(
                 delegate: SliverChildBuilderDelegate(
-                      (ctx, i) => FadeTransition(
+                  (ctx, i) => FadeTransition(
                     opacity: _listFade,
                     child: SlideTransition(
                       position: _listSlide,
-                      child: CalendarEventCard(
-                        event: dayEvents[i],
-                        index: i,
-                      ),
+                      child: CalendarEventCard(event: dayEvents[i], index: i),
                     ),
                   ),
                   childCount: dayEvents.length,
@@ -385,11 +432,11 @@ class _DayCell extends StatelessWidget {
 
   Color _catColor(String cat) => switch (cat) {
     'Technical' => AppColors.categoryTechnical,
-    'Cultural'  => AppColors.categoryCultural,
-    'Sports'    => AppColors.categorySports,
-    'Workshop'  => AppColors.categoryWorkshop,
-    'Seminar'   => AppColors.categorySeminar,
-    _           => AppColors.primary,
+    'Cultural' => AppColors.categoryCultural,
+    'Sports' => AppColors.categorySports,
+    'Workshop' => AppColors.categoryWorkshop,
+    'Seminar' => AppColors.categorySeminar,
+    _ => AppColors.primary,
   };
 
   @override
@@ -418,11 +465,11 @@ class _DayCell extends StatelessWidget {
         border: Border.all(color: AppColors.primary, width: 1.5),
       );
     } else {
-      numColor = isWeekend
-          ? AppColors.textSecondary
-          : AppColors.textPrimary;
+      numColor = isWeekend ? AppColors.textSecondary : AppColors.textPrimary;
       deco = const BoxDecoration(
-          color: Colors.transparent, shape: BoxShape.circle);
+        color: Colors.transparent,
+        shape: BoxShape.circle,
+      );
     }
 
     return Column(
@@ -437,8 +484,8 @@ class _DayCell extends StatelessWidget {
           child: Text(
             '${day.day}',
             style: TextStyle(
-              color:      numColor,
-              fontSize:   13,
+              color: numColor,
+              fontSize: 13,
               fontWeight: isSelected || isToday
                   ? FontWeight.w800
                   : FontWeight.w500,
@@ -454,21 +501,25 @@ class _DayCell extends StatelessWidget {
           child: events.isEmpty
               ? const SizedBox.shrink()
               : Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            mainAxisSize: MainAxisSize.min,
-            children: cats.take(3).map((cat) => Container(
-              margin:
-              const EdgeInsets.symmetric(horizontal: 1.5),
-              width:  isSelected ? 6 : 5,
-              height: isSelected ? 6 : 5,
-              decoration: BoxDecoration(
-                color: isSelected
-                    ? AppColors.white
-                    : _catColor(cat),
-                shape: BoxShape.circle,
-              ),
-            )).toList(),
-          ),
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
+                  children: cats
+                      .take(3)
+                      .map(
+                        (cat) => Container(
+                          margin: const EdgeInsets.symmetric(horizontal: 1.5),
+                          width: isSelected ? 6 : 5,
+                          height: isSelected ? 6 : 5,
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? AppColors.white
+                                : _catColor(cat),
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                      )
+                      .toList(),
+                ),
         ),
       ],
     );
@@ -502,7 +553,7 @@ class _NavBtn extends StatelessWidget {
 
 class _LegendDot extends StatelessWidget {
   final String label;
-  final Color  color;
+  final Color color;
   const _LegendDot(this.label, this.color);
 
   @override
@@ -510,9 +561,9 @@ class _LegendDot extends StatelessWidget {
     mainAxisSize: MainAxisSize.min,
     children: [
       Container(
-        width: 6, height: 6,
-        decoration:
-        BoxDecoration(color: color, shape: BoxShape.circle),
+        width: 6,
+        height: 6,
+        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
       ),
       const SizedBox(width: 4),
       Text(
@@ -546,8 +597,11 @@ class _EmptyState extends StatelessWidget {
               color: AppColors.primarySurface,
               borderRadius: BorderRadius.circular(20),
             ),
-            child: const Icon(Icons.event_available_rounded,
-                size: 34, color: AppColors.primaryMuted),
+            child: const Icon(
+              Icons.event_available_rounded,
+              size: 34,
+              color: AppColors.primaryMuted,
+            ),
           ),
           const SizedBox(height: 14),
           Text(

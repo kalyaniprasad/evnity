@@ -6,7 +6,9 @@ import '../../../../core/widgets/app_snackbar.dart';
 import '../../providers/club_providers.dart';
 import '../../models/club_mock_data.dart';
 import '../../dashboard/widgets/upload_poster_widget.dart';
+import '../widgets/form_builder_widget.dart';
 import '../../../../core/services/cloudinary_service.dart';
+import '../../../../core/repositories/event_repository.dart';
 import '../../../../core/providers/student_providers.dart'; // For currentUserProvider
 
 class CreateEventScreen extends ConsumerStatefulWidget {
@@ -120,8 +122,12 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
 
       final eventData = {
         'title': form.title,
-        'clubName': clubProfile.name.isNotEmpty ? clubProfile.name : user.aliasName,
-        'organizerName': clubProfile.name.isNotEmpty ? clubProfile.name : user.aliasName,
+        'clubName': clubProfile.name.isNotEmpty
+            ? clubProfile.name
+            : user.aliasName,
+        'organizerName': clubProfile.name.isNotEmpty
+            ? clubProfile.name
+            : user.aliasName,
         'clubId': user.id,
         'category': form.category,
         'date': form.date,
@@ -130,6 +136,7 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
         'posterUrl': imageUrl,
         'description': form.description,
         'status': 'published',
+        'registrationFields': form.formFields.map((f) => f.toJson()).toList(),
       };
 
       await repo.createEvent(eventData);
@@ -243,6 +250,10 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
               maxLines: 4,
             ),
             const SizedBox(height: 28),
+
+            // ── Registration Form Builder ────────────────────────────────
+            const FormBuilderWidget(),
+            const SizedBox(height: 36),
 
             // ── Schedule ─────────────────────────────────────────────────
             _SectionHeader('Schedule'),

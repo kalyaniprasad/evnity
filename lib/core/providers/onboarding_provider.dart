@@ -18,5 +18,6 @@ class OnboardingNotifier extends Notifier<int> {
   void reset() => state = 0;
 }
 
-final onboardingProvider =
-    NotifierProvider<OnboardingNotifier, int>(OnboardingNotifier.new);
+final onboardingProvider = NotifierProvider<OnboardingNotifier, int>(
+  OnboardingNotifier.new,
+);

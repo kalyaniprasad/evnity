@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/theme.dart';
 import '../../../core/widgets/app_snackbar.dart';
+import '../../../core/providers/student_providers.dart';
 import '../../club/providers/club_providers.dart';
 
 class ClubShell extends ConsumerStatefulWidget {
@@ -31,10 +32,12 @@ class _ClubShellState extends ConsumerState<ClubShell> {
 
   @override
   Widget build(BuildContext context) {
+    final unread = ref.watch(unreadCountProvider);
     return Scaffold(
       body: widget.navigationShell,
       bottomNavigationBar: _ClubBottomNav(
         currentIndex: widget.navigationShell.currentIndex,
+        unreadCount: unread,
         onTap: (index) => widget.navigationShell.goBranch(
           index,
           initialLocation: index == widget.navigationShell.currentIndex,
@@ -46,10 +49,14 @@ class _ClubShellState extends ConsumerState<ClubShell> {
 
 class _ClubBottomNav extends StatelessWidget {
   final int currentIndex;
+  final int unreadCount;
   final ValueChanged<int> onTap;
 
-  const _ClubBottomNav(
-      {required this.currentIndex, required this.onTap});
+  const _ClubBottomNav({
+    required this.currentIndex,
+    required this.unreadCount,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -92,11 +99,19 @@ class _ClubBottomNav extends StatelessWidget {
                 onTap: () => onTap(2),
               ),
               _NavItem(
+                icon: Icons.notifications_outlined,
+                activeIcon: Icons.notifications_rounded,
+                label: 'Alerts',
+                isActive: currentIndex == 3,
+                badge: unreadCount,
+                onTap: () => onTap(3),
+              ),
+              _NavItem(
                 icon: Icons.groups_outlined,
                 activeIcon: Icons.groups_rounded,
                 label: 'Profile',
-                isActive: currentIndex == 3,
-                onTap: () => onTap(3),
+                isActive: currentIndex == 4,
+                onTap: () => onTap(4),
               ),
             ],
           ),
@@ -111,6 +126,7 @@ class _NavItem extends StatelessWidget {
   final IconData activeIcon;
   final String label;
   final bool isActive;
+  final int badge;
   final VoidCallback onTap;
 
   const _NavItem({
@@ -119,6 +135,7 @@ class _NavItem extends StatelessWidget {
     required this.label,
     required this.isActive,
     required this.onTap,
+    this.badge = 0,
   });
 
   @override
@@ -128,34 +145,56 @@ class _NavItem extends StatelessWidget {
       behavior: HitTestBehavior.opaque,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: isActive
-              ? AppColors.primarySurface
-              : Colors.transparent,
+          color: isActive ? AppColors.primarySurface : Colors.transparent,
           borderRadius: BorderRadius.circular(14),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              isActive ? activeIcon : icon,
-              size: 24,
-              color: isActive
-                  ? AppColors.primary
-                  : AppColors.textMuted,
+            Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Icon(
+                  isActive ? activeIcon : icon,
+                  size: 24,
+                  color: isActive ? AppColors.primary : AppColors.textMuted,
+                ),
+                if (badge > 0)
+                  Positioned(
+                    top: -4,
+                    right: -6,
+                    child: Container(
+                      padding: const EdgeInsets.all(3),
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFDC2626),
+                        shape: BoxShape.circle,
+                      ),
+                      constraints: const BoxConstraints(
+                        minWidth: 16,
+                        minHeight: 16,
+                      ),
+                      child: Text(
+                        badge > 9 ? '9+' : '$badge',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 9,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
             ),
             const SizedBox(height: 4),
             AnimatedDefaultTextStyle(
               duration: const Duration(milliseconds: 200),
               style: TextStyle(
                 fontSize: 11,
-                fontWeight:
-                    isActive ? FontWeight.w700 : FontWeight.w400,
-                color: isActive
-                    ? AppColors.primary
-                    : AppColors.textMuted,
+                fontWeight: isActive ? FontWeight.w700 : FontWeight.w400,
+                color: isActive ? AppColors.primary : AppColors.textMuted,
               ),
               child: Text(label),
             ),

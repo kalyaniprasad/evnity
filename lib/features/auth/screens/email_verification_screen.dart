@@ -29,8 +29,7 @@ class _EmailVerificationScreenState
   late AnimationController _pulseController;
   late Animation<double> _pulseAnimation;
 
-  String get _email =>
-      FirebaseAuth.instance.currentUser?.email ?? 'your email';
+  String get _email => FirebaseAuth.instance.currentUser?.email ?? 'your email';
 
   @override
   void initState() {
@@ -77,7 +76,10 @@ class _EmailVerificationScreenState
         );
         setState(() => _resendCooldown = 60);
         _resendTimer = Timer.periodic(const Duration(seconds: 1), (t) {
-          if (!mounted) { t.cancel(); return; }
+          if (!mounted) {
+            t.cancel();
+            return;
+          }
           setState(() {
             _resendCooldown--;
             if (_resendCooldown <= 0) t.cancel();
@@ -86,8 +88,11 @@ class _EmailVerificationScreenState
       }
     } catch (_) {
       if (mounted) {
-        showAppSnackbar(context, 'Failed to resend email. Try again.',
-            type: SnackbarType.error);
+        showAppSnackbar(
+          context,
+          'Failed to resend email. Try again.',
+          type: SnackbarType.error,
+        );
       }
     }
   }
@@ -151,11 +156,16 @@ class _EmailVerificationScreenState
               ),
               const SizedBox(height: 6),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
                 decoration: BoxDecoration(
                   color: AppColors.primary.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
+                  border: Border.all(
+                    color: AppColors.primary.withValues(alpha: 0.2),
+                  ),
                 ),
                 child: Text(
                   _email,
@@ -207,8 +217,9 @@ class _EmailVerificationScreenState
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
-                    disabledBackgroundColor:
-                        AppColors.primary.withValues(alpha: 0.35),
+                    disabledBackgroundColor: AppColors.primary.withValues(
+                      alpha: 0.35,
+                    ),
                     disabledForegroundColor: Colors.white70,
                     elevation: 0,
                     shape: RoundedRectangleBorder(

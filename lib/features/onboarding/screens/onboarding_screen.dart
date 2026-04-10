@@ -143,16 +143,22 @@ class _TopBar extends StatelessWidget {
               onPressed: isLastPage ? null : onSkip,
               style: TextButton.styleFrom(
                 foregroundColor: AppColors.textMuted,
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 8,
+                ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(20),
                   side: const BorderSide(color: AppColors.divider),
                 ),
               ),
-              child: Text('Skip', style: AppTextStyles.labelM.copyWith(
-                color: AppColors.textMuted,
-                fontWeight: FontWeight.w500,
-              )),
+              child: Text(
+                'Skip',
+                style: AppTextStyles.labelM.copyWith(
+                  color: AppColors.textMuted,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
             ),
           ),
         ],
@@ -203,7 +209,9 @@ class _BottomControls extends StatelessWidget {
             child: PrimaryButton(
               key: ValueKey(isLastPage),
               label: isLastPage ? 'Get Started' : 'Next',
-              icon: isLastPage ? Icons.arrow_forward_rounded : Icons.chevron_right_rounded,
+              icon: isLastPage
+                  ? Icons.arrow_forward_rounded
+                  : Icons.chevron_right_rounded,
               onPressed: onNext,
             ),
           ),

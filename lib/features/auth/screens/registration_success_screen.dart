@@ -24,17 +24,15 @@ import '../../../core/services/auth_service.dart';
 class RegistrationSuccessScreen extends ConsumerStatefulWidget {
   const RegistrationSuccessScreen({super.key});
   @override
-  ConsumerState<RegistrationSuccessScreen> createState() =>
-      _RegSuccessState();
+  ConsumerState<RegistrationSuccessScreen> createState() => _RegSuccessState();
 }
 
 class _RegSuccessState extends ConsumerState<RegistrationSuccessScreen>
     with TickerProviderStateMixin {
-
   // ── Controllers ─────────────────────────────────────────────────────────────
-  late final AnimationController _masterCtrl;   // 1600ms — everything
-  late final AnimationController _textCtrl;     // 400ms  — text slide
-  late final AnimationController _dotCtrl;      // looping dots
+  late final AnimationController _masterCtrl; // 1600ms — everything
+  late final AnimationController _textCtrl; // 400ms  — text slide
+  late final AnimationController _dotCtrl; // looping dots
 
   // ── Sub-animations (derived from _masterCtrl using Interval) ─────────────
   // Circle: scale-in 60px
@@ -69,15 +67,9 @@ class _RegSuccessState extends ConsumerState<RegistrationSuccessScreen>
   // ── Audio + Haptic ──────────────────────────────────────────────────────────
   final _audio = AudioPlayer();
 
-
-  String get _firstName =>
-      (FirebaseAuth.instance.currentUser?.displayName ?? 'there')
-          .split(' ')
-          .first;
-
   // ── Colours ────────────────────────────────────────────────────────────────
   static const _successGreen = Color(0xFF22C55E);
-  static const _neutralGrey  = Color(0xFFE5E7EB);
+  static const _neutralGrey = Color(0xFFE5E7EB);
 
   @override
   void initState() {
@@ -109,36 +101,52 @@ class _RegSuccessState extends ConsumerState<RegistrationSuccessScreen>
     );
 
     // circle pulse: 19–40% (300–640ms)
-    _circlePulse = TweenSequence<double>([
-      TweenSequenceItem(
-        tween: Tween(begin: 1.0, end: 1.16)
-            .chain(CurveTween(curve: Curves.easeOut)),
-        weight: 35,
-      ),
-      TweenSequenceItem(
-        tween: Tween(begin: 1.16, end: 1.0)
-            .chain(CurveTween(curve: Curves.elasticIn)),
-        weight: 65,
-      ),
-    ]).animate(CurvedAnimation(
-      parent: _masterCtrl,
-      curve: const Interval(0.19, 0.40),
-    ));
+    _circlePulse =
+        TweenSequence<double>([
+          TweenSequenceItem(
+            tween: Tween(
+              begin: 1.0,
+              end: 1.16,
+            ).chain(CurveTween(curve: Curves.easeOut)),
+            weight: 35,
+          ),
+          TweenSequenceItem(
+            tween: Tween(
+              begin: 1.16,
+              end: 1.0,
+            ).chain(CurveTween(curve: Curves.elasticIn)),
+            weight: 65,
+          ),
+        ]).animate(
+          CurvedAnimation(
+            parent: _masterCtrl,
+            curve: const Interval(0.19, 0.40),
+          ),
+        );
 
     // glow breathe: 0–60%
-    _glowPulse = TweenSequence<double>([
-      TweenSequenceItem(
-          tween: Tween(begin: 0.0, end: 0.45)
-              .chain(CurveTween(curve: Curves.easeIn)),
-          weight: 30),
-      TweenSequenceItem(
-          tween: Tween(begin: 0.45, end: 0.28)
-              .chain(CurveTween(curve: Curves.easeInOut)),
-          weight: 70),
-    ]).animate(CurvedAnimation(
-      parent: _masterCtrl,
-      curve: const Interval(0.0, 0.60),
-    ));
+    _glowPulse =
+        TweenSequence<double>([
+          TweenSequenceItem(
+            tween: Tween(
+              begin: 0.0,
+              end: 0.45,
+            ).chain(CurveTween(curve: Curves.easeIn)),
+            weight: 30,
+          ),
+          TweenSequenceItem(
+            tween: Tween(
+              begin: 0.45,
+              end: 0.28,
+            ).chain(CurveTween(curve: Curves.easeInOut)),
+            weight: 70,
+          ),
+        ]).animate(
+          CurvedAnimation(
+            parent: _masterCtrl,
+            curve: const Interval(0.0, 0.60),
+          ),
+        );
 
     // sonar rings — 3 staggered rings 19–100%
     _ring1 = CurvedAnimation(
@@ -243,8 +251,11 @@ class _RegSuccessState extends ConsumerState<RegistrationSuccessScreen>
                 child: AnimatedBuilder(
                   animation: _masterCtrl,
                   builder: (context, child) {
-                    final circleColor =
-                        Color.lerp(_neutralGrey, _successGreen, _colorShift.value)!;
+                    final circleColor = Color.lerp(
+                      _neutralGrey,
+                      _successGreen,
+                      _colorShift.value,
+                    )!;
                     final pulse = _masterCtrl.value > 0.19
                         ? _circlePulse.value
                         : 1.0;
@@ -279,7 +290,7 @@ class _RegSuccessState extends ConsumerState<RegistrationSuccessScreen>
                     child: Column(
                       children: [
                         Text(
-                          "You're In! 🎉",
+                          "You're all set! 🎉",
                           style: GoogleFonts.dmSans(
                             fontSize: 30,
                             fontWeight: FontWeight.w900,
@@ -398,7 +409,7 @@ class _SuccessPainter extends CustomPainter {
   });
 
   static const _green = Color(0xFF22C55E);
-  static const _baseR = 62.0;    // logical px radius of the green circle
+  static const _baseR = 62.0; // logical px radius of the green circle
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -494,16 +505,17 @@ class _SuccessPainter extends CustomPainter {
     if (sparkleProg <= 0) return;
     final baseR = _baseR * math.min(circleScale * circlePulse, 1.15);
     final orbitR = baseR + 26 + 10 * sparkleProg;
-    final opacity = sparkleProg < 0.5
-        ? sparkleProg * 2
-        : (1 - sparkleProg) * 2;
+    final opacity = sparkleProg < 0.5 ? sparkleProg * 2 : (1 - sparkleProg) * 2;
 
     for (int i = 0; i < 7; i++) {
       final angle = (i / 7) * 2 * math.pi - math.pi / 2;
       final scale = 0.55 + 0.45 * math.sin(sparkleProg * math.pi + i * 0.9);
-      final pos = c + Offset(math.cos(angle) * orbitR, math.sin(angle) * orbitR);
+      final pos =
+          c + Offset(math.cos(angle) * orbitR, math.sin(angle) * orbitR);
       final paint = Paint()
-        ..color = const Color(0xFFFFD600).withValues(alpha: opacity.clamp(0.0, 1.0));
+        ..color = const Color(
+          0xFFFFD600,
+        ).withValues(alpha: opacity.clamp(0.0, 1.0));
       _drawStar(canvas, pos, 6 * scale, paint);
     }
   }
@@ -528,10 +540,9 @@ class _SuccessPainter extends CustomPainter {
     for (final p in particles) {
       final dist = p.speed * confettiProg;
       final gravity = 28.0 * confettiProg * confettiProg;
-      final pos = c + Offset(
-        math.cos(p.angle) * dist,
-        math.sin(p.angle) * dist + gravity,
-      );
+      final pos =
+          c +
+          Offset(math.cos(p.angle) * dist, math.sin(p.angle) * dist + gravity);
 
       // Opacity envelope: rises 0→0.35, full 0.35→1.0 then fades
       final opacity = confettiProg < 0.35
@@ -558,9 +569,10 @@ class _SuccessPainter extends CustomPainter {
           canvas.drawRRect(
             RRect.fromRectAndRadius(
               Rect.fromCenter(
-                  center: Offset.zero,
-                  width: p.size * 2.4,
-                  height: p.size * 0.42),
+                center: Offset.zero,
+                width: p.size * 2.4,
+                height: p.size * 0.42,
+              ),
               const Radius.circular(2),
             ),
             paint,
@@ -590,18 +602,18 @@ class _Particle {
   final double speed;
   final double size;
   final Color color;
-  final int shape;          // 0 circle, 1 square, 2 ribbon, 3 triangle
+  final int shape; // 0 circle, 1 square, 2 ribbon, 3 triangle
   final double rotSpeed;
   final double startOpacity;
 
   _Particle(math.Random rng)
-      : angle = rng.nextDouble() * 2 * math.pi,
-        speed = 75 + rng.nextDouble() * 105,
-        size = 4.5 + rng.nextDouble() * 7.5,
-        color = _colors[rng.nextInt(_colors.length)],
-        shape = rng.nextInt(4),
-        rotSpeed = (rng.nextDouble() - 0.5) * 7,
-        startOpacity = 0.65 + rng.nextDouble() * 0.35;
+    : angle = rng.nextDouble() * 2 * math.pi,
+      speed = 75 + rng.nextDouble() * 105,
+      size = 4.5 + rng.nextDouble() * 7.5,
+      color = _colors[rng.nextInt(_colors.length)],
+      shape = rng.nextInt(4),
+      rotSpeed = (rng.nextDouble() - 0.5) * 7,
+      startOpacity = 0.65 + rng.nextDouble() * 0.35;
 
   static const _colors = [
     Color(0xFF22C55E), // success green
@@ -654,7 +666,7 @@ class _InkDryCurve extends Curve {
     }
     // Y value for the solved t
     return 3 * (1 - ut) * (1 - ut) * ut * 0 +
-           3 * (1 - ut) * ut * ut * 1 +
-           ut * ut * ut;
+        3 * (1 - ut) * ut * ut * 1 +
+        ut * ut * ut;
   }
 }

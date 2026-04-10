@@ -67,6 +67,7 @@ class AuthFormState {
   final bool isPasswordVisible;
   final bool isLoading;
   final String? errorMessage;
+
   /// True immediately after a brand-new email/password registration succeeds.
   /// Reset to false after the caller has consumed it (navigated to verify screen).
   final bool isNewEmailRegistration;
@@ -151,8 +152,7 @@ class AuthFormNotifier extends Notifier<AuthFormState> {
     setLoading(true);
 
     final service = ref.read(authServiceProvider);
-    final roleStr =
-        state.selectedRole == UserRole.student ? 'student' : 'club';
+    final roleStr = state.selectedRole == UserRole.student ? 'student' : 'club';
 
     try {
       if (state.isLoginMode) {
@@ -163,8 +163,11 @@ class AuthFormNotifier extends Notifier<AuthFormState> {
           return;
         }
         await service.signInWithEmail(email: email, password: password);
-        state = state.copyWith(isLoading: false, clearError: true,
-            isNewEmailRegistration: false);
+        state = state.copyWith(
+          isLoading: false,
+          clearError: true,
+          isNewEmailRegistration: false,
+        );
       } else {
         // ── Brand-new email registration ───────────────────────────────────
         await service.signUpWithEmail(
@@ -188,5 +191,6 @@ class AuthFormNotifier extends Notifier<AuthFormState> {
   }
 }
 
-final authFormProvider =
-    NotifierProvider<AuthFormNotifier, AuthFormState>(AuthFormNotifier.new);
+final authFormProvider = NotifierProvider<AuthFormNotifier, AuthFormState>(
+  AuthFormNotifier.new,
+);

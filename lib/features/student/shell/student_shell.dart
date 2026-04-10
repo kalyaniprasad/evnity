@@ -174,8 +174,10 @@ class _NavItem extends StatelessWidget {
                         color: Color(0xFFDC2626),
                         shape: BoxShape.circle,
                       ),
-                      constraints:
-                          const BoxConstraints(minWidth: 16, minHeight: 16),
+                      constraints: const BoxConstraints(
+                        minWidth: 16,
+                        minHeight: 16,
+                      ),
                       child: Text(
                         badge > 9 ? '9+' : '$badge',
                         textAlign: TextAlign.center,
@@ -194,10 +196,8 @@ class _NavItem extends StatelessWidget {
               duration: const Duration(milliseconds: 200),
               style: TextStyle(
                 fontSize: 11,
-                fontWeight:
-                    isActive ? FontWeight.w700 : FontWeight.w400,
-                color:
-                    isActive ? AppColors.primary : AppColors.textMuted,
+                fontWeight: isActive ? FontWeight.w700 : FontWeight.w400,
+                color: isActive ? AppColors.primary : AppColors.textMuted,
               ),
               child: Text(label),
             ),

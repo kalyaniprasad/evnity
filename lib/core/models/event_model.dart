@@ -1,4 +1,5 @@
 import 'package:intl/intl.dart';
+import '../../features/club/models/registration_field_model.dart';
 
 enum EventTimingStatus { upcoming, live, completed }
 
@@ -17,6 +18,7 @@ class EventModel {
   final String description;
   final int registrationCount;
   final bool isRegistered;
+  final List<RegistrationFieldModel> registrationFields;
 
   const EventModel({
     required this.id,
@@ -33,42 +35,48 @@ class EventModel {
     required this.description,
     required this.registrationCount,
     this.isRegistered = false,
+    this.registrationFields = const [],
   });
 
   EventModel copyWith({bool? isRegistered}) => EventModel(
-        id: id,
-        title: title,
-        hostClubId: hostClubId,
-        clubName: clubName,
-        organizerName: organizerName,
-        clubLogoUrl: clubLogoUrl,
-        date: date,
-        time: time,
-        venue: venue,
-        category: category,
-        posterUrl: posterUrl,
-        description: description,
-        registrationCount: registrationCount,
-        isRegistered: isRegistered ?? this.isRegistered,
-      );
+    id: id,
+    title: title,
+    hostClubId: hostClubId,
+    clubName: clubName,
+    organizerName: organizerName,
+    clubLogoUrl: clubLogoUrl,
+    date: date,
+    time: time,
+    venue: venue,
+    category: category,
+    posterUrl: posterUrl,
+    description: description,
+    registrationCount: registrationCount,
+    isRegistered: isRegistered ?? this.isRegistered,
+    registrationFields: registrationFields,
+  );
 }
 
 extension EventStatusExtension on EventModel {
   EventTimingStatus get currentStatus {
     try {
       // 1. Clean date (handles "Sat, 15 Mar 2025" or "15 Mar 2025")
-      final cleanDate = date.contains(',') ? date.split(', ').last.trim() : date.trim();
-      
+      final cleanDate = date.contains(',')
+          ? date.split(', ').last.trim()
+          : date.trim();
+
       // 2. Split time string (assumes format "10:00 AM - 02:00 PM")
       final timeParts = time.split('-');
       if (timeParts.length < 2) return EventTimingStatus.upcoming; // Fallback
-      
+
       final startTimeStr = timeParts[0].trim();
       final endTimeStr = timeParts[1].trim();
 
       // 3. Parse date and merge with times
       final DateFormat formatter = DateFormat('dd MMM yyyy h:mm a');
-      final DateTime startDateTime = formatter.parse('$cleanDate $startTimeStr');
+      final DateTime startDateTime = formatter.parse(
+        '$cleanDate $startTimeStr',
+      );
       final DateTime endDateTime = formatter.parse('$cleanDate $endTimeStr');
       final DateTime now = DateTime.now();
 
@@ -81,7 +89,7 @@ extension EventStatusExtension on EventModel {
         return EventTimingStatus.live;
       }
     } catch (e) {
-      return EventTimingStatus.upcoming; // Fallback entirely 
+      return EventTimingStatus.upcoming; // Fallback entirely
     }
   }
 }

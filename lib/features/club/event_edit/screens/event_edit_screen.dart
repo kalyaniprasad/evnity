@@ -6,8 +6,10 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/theme.dart';
 import '../../../../core/widgets/app_snackbar.dart';
 import '../../../../core/services/cloudinary_service.dart';
+import '../../../../core/repositories/event_repository.dart';
 import '../../providers/club_providers.dart';
 import '../../dashboard/widgets/upload_poster_widget.dart';
+import '../../create_event/widgets/form_builder_widget.dart';
 
 class EventEditScreen extends ConsumerStatefulWidget {
   final String eventId;
@@ -43,7 +45,11 @@ class _EventEditScreenState extends ConsumerState<EventEditScreen> {
     final desc = _descCtrl.text.trim();
 
     if (title.isEmpty || venue.isEmpty || desc.isEmpty) {
-      showAppSnackbar(context, 'Please fill in all required fields.', type: SnackbarType.error);
+      showAppSnackbar(
+        context,
+        'Please fill in all required fields.',
+        type: SnackbarType.error,
+      );
       return;
     }
 
@@ -56,16 +62,17 @@ class _EventEditScreenState extends ConsumerState<EventEditScreen> {
     try {
       String? updatedPosterUrl = _existingPosterUrl;
 
-      // If a new poster is selected, upload it
       if (_newPosterFile != null) {
         final url = await CloudinaryService.uploadImage(_newPosterFile!);
         if (url != null) updatedPosterUrl = url;
       }
 
       final repo = ref.read(eventRepositoryProvider);
-
       final clubProfile = ref.read(clubProfileProvider);
       final user = ref.read(currentUserProvider);
+
+      // Grab the latest form fields from the provider
+      final formFields = ref.read(createEventProvider).formFields;
 
       final updatedData = {
         'title': title,
@@ -75,21 +82,33 @@ class _EventEditScreenState extends ConsumerState<EventEditScreen> {
         'date': _date,
         'time': _time,
         'posterUrl': updatedPosterUrl,
-        'organizerName': clubProfile.name.isNotEmpty ? clubProfile.name : user.aliasName,
-        'status': 'published', // we keep it published, or preserve current status if we query it
+        'organizerName': clubProfile.name.isNotEmpty
+            ? clubProfile.name
+            : user.aliasName,
+        'status': 'published',
+        // Save updated registration form fields
+        'registrationFields': formFields.map((f) => f.toJson()).toList(),
       };
 
       await repo.updateEvent(widget.eventId, updatedData);
 
-      if (mounted) Navigator.pop(context); // Close loading dialog
+      if (mounted) Navigator.pop(context);
       if (mounted) {
-        showAppSnackbar(context, 'Event updated successfully! 🎉', type: SnackbarType.success);
+        showAppSnackbar(
+          context,
+          'Event updated successfully! 🎉',
+          type: SnackbarType.success,
+        );
         context.pop();
       }
     } catch (e) {
-      if (mounted) Navigator.pop(context); // Close loading dialog
+      if (mounted) Navigator.pop(context);
       if (mounted) {
-        showAppSnackbar(context, 'Error updating event: $e', type: SnackbarType.error);
+        showAppSnackbar(
+          context,
+          'Error updating event: $e',
+          type: SnackbarType.error,
+        );
       }
     }
   }
@@ -110,7 +129,15 @@ class _EventEditScreenState extends ConsumerState<EventEditScreen> {
         _existingPosterUrl = event.posterUrl;
       }
       _initialized = true;
+
+      // Load existing registration fields from the club event model
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (event != null && event.registrationFields.isNotEmpty) {
+          ref.read(createEventProvider.notifier).setFormFields(event.registrationFields);
+        }
+      });
     }
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -138,6 +165,7 @@ class _EventEditScreenState extends ConsumerState<EventEditScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // ── Poster Upload ────────────────────────────────────────────
             UploadPosterWidget(
               imageFile: _newPosterFile,
               existingImageUrl: _existingPosterUrl,
@@ -150,9 +178,7 @@ class _EventEditScreenState extends ConsumerState<EventEditScreen> {
             ),
             const SizedBox(height: 28),
 
-            Text('Event Details', style: AppTextStyles.headingM),
-            const SizedBox(height: 14),
-
+            // ── Event Details ────────────────────────────────────────────
             _FieldLabel('Event Title *'),
             const SizedBox(height: 8),
             _InputField(controller: _titleCtrl),
@@ -168,6 +194,7 @@ class _EventEditScreenState extends ConsumerState<EventEditScreen> {
             _InputField(controller: _descCtrl, maxLines: 4),
             const SizedBox(height: 28),
 
+            // ── Schedule ─────────────────────────────────────────────────
             Text('Schedule', style: AppTextStyles.headingM),
             const SizedBox(height: 14),
             Row(
@@ -191,8 +218,13 @@ class _EventEditScreenState extends ConsumerState<EventEditScreen> {
                 ),
               ],
             ),
+            const SizedBox(height: 28),
+
+            // ── Registration Form Builder ────────────────────────────────
+            const FormBuilderWidget(),
             const SizedBox(height: 36),
 
+            // ── Save Button ──────────────────────────────────────────────
             SizedBox(
               width: double.infinity,
               height: 54,
@@ -202,10 +234,15 @@ class _EventEditScreenState extends ConsumerState<EventEditScreen> {
                   backgroundColor: AppColors.primary,
                   foregroundColor: AppColors.white,
                   elevation: 0,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                 ),
                 icon: const Icon(Icons.save_rounded, size: 20),
-                label: const Text('Save Changes', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                label: const Text(
+                  'Save Changes',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                ),
               ),
             ),
             const SizedBox(height: 36),
@@ -221,9 +258,12 @@ class _FieldLabel extends StatelessWidget {
   const _FieldLabel(this.text);
   @override
   Widget build(BuildContext context) => Text(
-        text,
-        style: AppTextStyles.labelS.copyWith(color: AppColors.textPrimary, fontWeight: FontWeight.w600),
-      );
+    text,
+    style: AppTextStyles.labelS.copyWith(
+      color: AppColors.textPrimary,
+      fontWeight: FontWeight.w600,
+    ),
+  );
 }
 
 class _InputField extends StatelessWidget {
@@ -240,7 +280,10 @@ class _InputField extends StatelessWidget {
       decoration: InputDecoration(
         filled: true,
         fillColor: AppColors.surface,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
           borderSide: const BorderSide(color: AppColors.divider),
@@ -295,7 +338,10 @@ class _PickerTile extends StatelessWidget {
                     value,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: AppTextStyles.labelS.copyWith(color: AppColors.primary, fontWeight: FontWeight.w600),
+                    style: AppTextStyles.labelS.copyWith(
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ],
               ),

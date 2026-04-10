@@ -1,7 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import '../utils/alias_generator.dart';
 
@@ -34,7 +33,7 @@ class AuthService {
       'uid': credential.user!.uid,
       'email': email,
       'name': name,
-      'aliasName': AliasGenerator.generate(),
+      'aliasName': role == 'club' ? '' : AliasGenerator.generate(),
       'role': role,
       'createdAt': FieldValue.serverTimestamp(),
     });
@@ -98,7 +97,7 @@ class AuthService {
           'uid': userCredential.user!.uid,
           'email': userCredential.user!.email ?? '',
           'name': displayName,
-          'aliasName': AliasGenerator.generate(),
+          'aliasName': role == 'club' ? '' : AliasGenerator.generate(),
           'role': role,
           'createdAt': FieldValue.serverTimestamp(),
         });
@@ -141,7 +140,10 @@ class AuthService {
   }
 
   // ── Friendly role-conflict message ───────────────────────────────────────
-  static String roleConflictMessage(String registeredRole, String attemptedRole) {
+  static String roleConflictMessage(
+    String registeredRole,
+    String attemptedRole,
+  ) {
     final reg = registeredRole == 'club' ? 'Club Organizer' : 'Student';
     final att = attemptedRole == 'club' ? 'Club Organizer' : 'Student';
     return 'This email is already registered as a $reg.\n\nPlease use the "$reg" role to sign in, or use a different email for $att access.';

@@ -4,8 +4,9 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/theme.dart';
 import '../../providers/club_providers.dart';
 import '../../models/club_event.dart';
-import '../../../../core/providers/student_providers.dart';
+import '../../../../core/repositories/event_repository.dart';
 import '../../dashboard/widgets/event_status_badge.dart';
+import 'event_registrations_screen.dart';
 
 class ClubEventDetailScreen extends ConsumerWidget {
   final String eventId;
@@ -20,8 +21,9 @@ class ClubEventDetailScreen extends ConsumerWidget {
     if (event == null) {
       return Scaffold(
         appBar: AppBar(
-            backgroundColor: AppColors.surface,
-            title: const Text('Event')),
+          backgroundColor: AppColors.surface,
+          title: const Text('Event'),
+        ),
         body: Center(
           child: Text('Event not found.', style: AppTextStyles.bodyL),
         ),
@@ -43,8 +45,11 @@ class ClubEventDetailScreen extends ConsumerWidget {
               child: CircleAvatar(
                 backgroundColor: AppColors.primaryDark.withOpacity(0.5),
                 child: IconButton(
-                  icon: const Icon(Icons.arrow_back_rounded,
-                      color: AppColors.white, size: 20),
+                  icon: const Icon(
+                    Icons.arrow_back_rounded,
+                    color: AppColors.white,
+                    size: 20,
+                  ),
                   onPressed: () => context.pop(),
                 ),
               ),
@@ -56,8 +61,8 @@ class ClubEventDetailScreen extends ConsumerWidget {
                   Image.network(
                     event.posterUrl,
                     fit: BoxFit.cover,
-                    errorBuilder: (_, _, _) => Container(
-                        color: AppColors.primarySurface),
+                    errorBuilder: (_, _, _) =>
+                        Container(color: AppColors.primarySurface),
                   ),
                   Container(
                     decoration: BoxDecoration(
@@ -83,7 +88,6 @@ class ClubEventDetailScreen extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-
                   // Badges
                   Row(
                     children: [
@@ -101,38 +105,47 @@ class ClubEventDetailScreen extends ConsumerWidget {
                   Row(
                     children: [
                       Expanded(
-                          child: _InfoTile(
-                              icon: Icons.calendar_today_rounded,
-                              label: 'Date',
-                              value: event.date)),
+                        child: _InfoTile(
+                          icon: Icons.calendar_today_rounded,
+                          label: 'Date',
+                          value: event.date,
+                        ),
+                      ),
                       const SizedBox(width: 12),
                       Expanded(
-                          child: _InfoTile(
-                              icon: Icons.access_time_rounded,
-                              label: 'Time',
-                              value: event.time)),
+                        child: _InfoTile(
+                          icon: Icons.access_time_rounded,
+                          label: 'Time',
+                          value: event.time,
+                        ),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 10),
                   _InfoTile(
-                      icon: Icons.location_on_rounded,
-                      label: 'Venue',
-                      value: event.venue,
-                      fullWidth: true),
+                    icon: Icons.location_on_rounded,
+                    label: 'Venue',
+                    value: event.venue,
+                    fullWidth: true,
+                  ),
                   const SizedBox(height: 10),
                   Row(
                     children: [
                       Expanded(
-                          child: _InfoTile(
-                              icon: Icons.people_rounded,
-                              label: 'Registered',
-                              value: '${event.registrationCount}')),
+                        child: _InfoTile(
+                          icon: Icons.people_rounded,
+                          label: 'Registered',
+                          value: '${event.registrationCount}',
+                        ),
+                      ),
                       const SizedBox(width: 12),
                       Expanded(
-                          child: _InfoTile(
-                              icon: Icons.forum_rounded,
-                              label: 'Messages',
-                              value: '${event.messageCount}')),
+                        child: _InfoTile(
+                          icon: Icons.forum_rounded,
+                          label: 'Messages',
+                          value: '${event.messageCount}',
+                        ),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 20),
@@ -174,7 +187,11 @@ class ClubEventDetailScreen extends ConsumerWidget {
                     subtitle: '${event.registrationCount} students registered',
                     iconColor: AppColors.primary,
                     iconBg: AppColors.primarySurface,
-                    onTap: () {},
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => EventRegistrationsScreen(eventId: event.id),
+                      ),
+                    ),
                   ),
                   const SizedBox(height: 10),
                   _ActionTile(
@@ -183,17 +200,19 @@ class ClubEventDetailScreen extends ConsumerWidget {
                     subtitle: 'Send a quick update to participants',
                     iconColor: AppColors.success,
                     iconBg: AppColors.successSurface,
-                    onTap: () => context.push('/club/event/${event.id}/announcement'),
+                    onTap: () =>
+                        context.push('/club/event/${event.id}/announcement'),
                   ),
                   const SizedBox(height: 10),
                   _ActionTile(
                     icon: Icons.forum_outlined,
                     title: 'Open Discussion',
-                    subtitle: '${event.messageCount} messages from participants',
+                    subtitle:
+                        '${event.messageCount} messages from participants',
                     iconColor: AppColors.categoryCultural,
                     iconBg: AppColors.categoryCulturalBg,
-                    onTap: () => context
-                        .push('/club/event/${event.id}/discussion'),
+                    onTap: () =>
+                        context.push('/club/event/${event.id}/discussion'),
                   ),
                   const SizedBox(height: 10),
                   _ActionTile(
@@ -218,11 +237,12 @@ class ClubEventDetailScreen extends ConsumerWidget {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Text('Delete Event', style: AppTextStyles.headingM),
-        content: Text('This action cannot be undone.',
-            style: AppTextStyles.bodyM),
+        content: Text(
+          'This action cannot be undone.',
+          style: AppTextStyles.bodyM,
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -238,7 +258,8 @@ class ClubEventDetailScreen extends ConsumerWidget {
               backgroundColor: AppColors.error,
               foregroundColor: AppColors.white,
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10)),
+                borderRadius: BorderRadius.circular(10),
+              ),
             ),
             child: const Text('Delete'),
           ),
@@ -291,8 +312,7 @@ class _InfoTile extends StatelessWidget {
               children: [
                 Text(label, style: AppTextStyles.caption),
                 const SizedBox(height: 2),
-                Text(value,
-                    style: AppTextStyles.labelM.copyWith(fontSize: 13)),
+                Text(value, style: AppTextStyles.labelM.copyWith(fontSize: 13)),
               ],
             ),
           ),
@@ -336,7 +356,9 @@ class _ActionTile extends StatelessWidget {
               width: 42,
               height: 42,
               decoration: BoxDecoration(
-                  color: iconBg, borderRadius: BorderRadius.circular(13)),
+                color: iconBg,
+                borderRadius: BorderRadius.circular(13),
+              ),
               child: Icon(icon, size: 20, color: iconColor),
             ),
             const SizedBox(width: 14),
@@ -344,16 +366,20 @@ class _ActionTile extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title,
-                      style: AppTextStyles.labelM
-                          .copyWith(color: iconColor)),
+                  Text(
+                    title,
+                    style: AppTextStyles.labelM.copyWith(color: iconColor),
+                  ),
                   const SizedBox(height: 2),
                   Text(subtitle, style: AppTextStyles.caption),
                 ],
               ),
             ),
-            Icon(Icons.chevron_right_rounded,
-                color: iconColor.withOpacity(0.45), size: 20),
+            Icon(
+              Icons.chevron_right_rounded,
+              color: iconColor.withOpacity(0.45),
+              size: 20,
+            ),
           ],
         ),
       ),
@@ -366,27 +392,29 @@ class _CategoryChip extends StatelessWidget {
   const _CategoryChip({required this.category});
 
   Color get _color => switch (category) {
-        'Technical' => AppColors.primary,
-        'Cultural' => AppColors.categoryCultural,
-        'Sports' => AppColors.success,
-        'Workshop' => AppColors.warning,
-        'Seminar' => AppColors.categorySeminar,
-        _ => AppColors.textSecondary,
-      };
+    'Technical' => AppColors.primary,
+    'Cultural' => AppColors.categoryCultural,
+    'Sports' => AppColors.success,
+    'Workshop' => AppColors.warning,
+    'Seminar' => AppColors.categorySeminar,
+    _ => AppColors.textSecondary,
+  };
 
   @override
   Widget build(BuildContext context) => Container(
-        padding:
-            const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: BoxDecoration(
-          color: _color.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: _color.withOpacity(0.3)),
-        ),
-        child: Text(
-          category,
-          style: TextStyle(
-              fontSize: 12, fontWeight: FontWeight.w700, color: _color),
-        ),
-      );
+    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+    decoration: BoxDecoration(
+      color: _color.withOpacity(0.1),
+      borderRadius: BorderRadius.circular(20),
+      border: Border.all(color: _color.withOpacity(0.3)),
+    ),
+    child: Text(
+      category,
+      style: TextStyle(
+        fontSize: 12,
+        fontWeight: FontWeight.w700,
+        color: _color,
+      ),
+    ),
+  );
 }

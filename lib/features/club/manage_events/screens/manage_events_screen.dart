@@ -4,15 +4,14 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/theme.dart';
 import '../../providers/club_providers.dart';
 import '../../models/club_event.dart';
-import '../../../../core/providers/student_providers.dart';
+import '../../../../core/repositories/event_repository.dart';
 import '../../dashboard/widgets/club_event_card.dart';
 
 class ManageEventsScreen extends ConsumerStatefulWidget {
   const ManageEventsScreen({super.key});
 
   @override
-  ConsumerState<ManageEventsScreen> createState() =>
-      _ManageEventsScreenState();
+  ConsumerState<ManageEventsScreen> createState() => _ManageEventsScreenState();
 }
 
 class _ManageEventsScreenState extends ConsumerState<ManageEventsScreen>
@@ -35,11 +34,11 @@ class _ManageEventsScreenState extends ConsumerState<ManageEventsScreen>
   Widget build(BuildContext context) {
     final allAsync = ref.watch(clubEventsProvider);
     final all = allAsync.valueOrNull ?? [];
-    
-    final published =
-        all.where((e) => e.status == EventStatus.published).toList();
-    final drafts =
-        all.where((e) => e.status == EventStatus.draft).toList();
+
+    final published = all
+        .where((e) => e.status == EventStatus.published)
+        .toList();
+    final drafts = all.where((e) => e.status == EventStatus.draft).toList();
     final repo = ref.read(eventRepositoryProvider);
 
     return Scaffold(
@@ -56,7 +55,9 @@ class _ManageEventsScreenState extends ConsumerState<ManageEventsScreen>
               onTap: () => context.go('/club/create'),
               child: Container(
                 padding: const EdgeInsets.symmetric(
-                    horizontal: 14, vertical: 8),
+                  horizontal: 14,
+                  vertical: 8,
+                ),
                 decoration: BoxDecoration(
                   color: AppColors.primary,
                   borderRadius: BorderRadius.circular(12),
@@ -64,14 +65,16 @@ class _ManageEventsScreenState extends ConsumerState<ManageEventsScreen>
                 child: const Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.add_rounded,
-                        color: AppColors.white, size: 16),
+                    Icon(Icons.add_rounded, color: AppColors.white, size: 16),
                     SizedBox(width: 4),
-                    Text('New',
-                        style: TextStyle(
-                            color: AppColors.white,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700)),
+                    Text(
+                      'New',
+                      style: TextStyle(
+                        color: AppColors.white,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -89,8 +92,7 @@ class _ManageEventsScreenState extends ConsumerState<ManageEventsScreen>
               indicatorColor: AppColors.primary,
               indicatorWeight: 3,
               labelStyle: AppTextStyles.labelM.copyWith(fontSize: 13),
-              unselectedLabelStyle:
-                  AppTextStyles.labelM.copyWith(fontSize: 13),
+              unselectedLabelStyle: AppTextStyles.labelM.copyWith(fontSize: 13),
               tabs: [
                 Tab(text: 'All (${all.length})'),
                 Tab(text: 'Live (${published.length})'),
@@ -103,15 +105,9 @@ class _ManageEventsScreenState extends ConsumerState<ManageEventsScreen>
       body: TabBarView(
         controller: _tabs,
         children: [
-          _EventList(
-              events: all,
-              onDelete: repo.deleteEvent),
-          _EventList(
-              events: published,
-              onDelete: repo.deleteEvent),
-          _EventList(
-              events: drafts,
-              onDelete: repo.deleteEvent),
+          _EventList(events: all, onDelete: repo.deleteEvent),
+          _EventList(events: published, onDelete: repo.deleteEvent),
+          _EventList(events: drafts, onDelete: repo.deleteEvent),
         ],
       ),
     );
@@ -140,14 +136,19 @@ class _EventList extends StatelessWidget {
                 color: AppColors.primarySurface,
                 borderRadius: BorderRadius.circular(22),
               ),
-              child: const Icon(Icons.event_busy_outlined,
-                  size: 36, color: AppColors.primaryMuted),
+              child: const Icon(
+                Icons.event_busy_outlined,
+                size: 36,
+                color: AppColors.primaryMuted,
+              ),
             ),
             const SizedBox(height: 16),
             Text('Nothing here yet', style: AppTextStyles.headingM),
             const SizedBox(height: 6),
-            Text('Create a new event to see it here.',
-                style: AppTextStyles.bodyS),
+            Text(
+              'Create a new event to see it here.',
+              style: AppTextStyles.bodyS,
+            ),
           ],
         ),
       );

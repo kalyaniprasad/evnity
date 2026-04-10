@@ -6,13 +6,13 @@ import '../../../core/theme/theme.dart';
 class SocialAuthButton extends StatelessWidget {
   final String label;
   final VoidCallback onPressed;
-  final bool isLoading;        // ADD THIS
+  final bool isLoading; // ADD THIS
 
   const SocialAuthButton({
     super.key,
     required this.label,
     required this.onPressed,
-    this.isLoading = false,    // ADD THIS
+    this.isLoading = false, // ADD THIS
   });
 
   @override
@@ -32,28 +32,30 @@ class SocialAuthButton extends StatelessWidget {
           elevation: 0,
         ),
         child: isLoading
-            ? const SizedBox(           // show spinner while loading
-          width: 22,
-          height: 22,
-          child: CircularProgressIndicator(
-            strokeWidth: 2.2,
-            color: AppColors.primary,
-          ),
-        ) : Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const GoogleGIcon(size: 22),
-            const SizedBox(width: 10),
-            Text(
-              label,
-              style: GoogleFonts.dmSans(
-                fontSize: 15,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textPrimary,
+            ? const SizedBox(
+                // show spinner while loading
+                width: 22,
+                height: 22,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.2,
+                  color: AppColors.primary,
+                ),
+              )
+            : Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const GoogleGIcon(size: 22),
+                  const SizedBox(width: 10),
+                  Text(
+                    label,
+                    style: GoogleFonts.dmSans(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                ],
               ),
-            ),
-          ],
-        ),
       ),
     );
   }
@@ -68,10 +70,7 @@ class GoogleGIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return CustomPaint(
-      size: Size(size, size),
-      painter: _GoogleGPainter(),
-    );
+    return CustomPaint(size: Size(size, size), painter: _GoogleGPainter());
   }
 }
 

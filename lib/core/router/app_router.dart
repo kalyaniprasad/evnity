@@ -36,6 +36,7 @@ import '../../features/club/event_edit/screens/event_edit_screen.dart';
 import '../../features/club/discussion/screens/club_discussion_screen.dart';
 import '../../features/club/dashboard/screens/announcement_screen.dart';
 import '../../features/club/dashboard/screens/sent_announcements_screen.dart';
+import '../../features/club/notifications/screens/club_notifications_screen.dart';
 
 import '../providers/auth_provider.dart';
 
@@ -66,7 +67,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 
       // ── Route categories ────────────────────────────────────────────────────
       // Pre-auth: unauthenticated OK, authenticated gets bounced to home
-      final isPreAuth = currentPath == '/' ||
+      final isPreAuth =
+          currentPath == '/' ||
           currentPath == '/onboarding' ||
           currentPath == '/auth';
 
@@ -117,7 +119,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     },
 
     routes: [
-
       // ── Pre-auth ─────────────────────────────────────────────────────────
       GoRoute(
         path: '/',
@@ -164,8 +165,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         name: 'studentClubDetail',
         pageBuilder: (ctx, state) {
           final id = state.pathParameters['id']!;
-          return _slidePage(
-              state.pageKey, StudentClubDetailScreen(clubId: id));
+          return _slidePage(state.pageKey, StudentClubDetailScreen(clubId: id));
         },
       ),
 
@@ -183,8 +183,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             name: 'discussion',
             pageBuilder: (ctx, state) {
               final id = state.pathParameters['id']!;
-              return _slidePage(
-                  state.pageKey, DiscussionScreen(eventId: id));
+              return _slidePage(state.pageKey, DiscussionScreen(eventId: id));
             },
           ),
           GoRoute(
@@ -193,7 +192,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             pageBuilder: (ctx, state) {
               final id = state.pathParameters['id']!;
               return _slidePage(
-                  state.pageKey, EventRegistrationScreen(eventId: id));
+                state.pageKey,
+                EventRegistrationScreen(eventId: id),
+              );
             },
           ),
         ],
@@ -201,51 +202,61 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 
       // ── Student Shell (5 tabs) ────────────────────────────────────────────
       StatefulShellRoute.indexedStack(
-        builder: (ctx, state, shell) =>
-            StudentShell(navigationShell: shell),
+        builder: (ctx, state, shell) => StudentShell(navigationShell: shell),
         branches: [
-          StatefulShellBranch(routes: [
-            GoRoute(
-              path: '/home',
-              name: 'studentHome',
-              pageBuilder: (ctx, state) =>
-                  _noTransitionPage(state.pageKey, const HomeScreen()),
-            ),
-          ]),
-          StatefulShellBranch(routes: [
-            GoRoute(
-              path: '/calendar',
-              name: 'studentCalendar',
-              pageBuilder: (ctx, state) =>
-                  _noTransitionPage(state.pageKey, const CalendarScreen()),
-              // Day events are now shown inline below the calendar.
-            ),
-          ]),
-          StatefulShellBranch(routes: [
-            GoRoute(
-              path: '/search',
-              name: 'studentSearch',
-              pageBuilder: (ctx, state) =>
-                  _noTransitionPage(state.pageKey, const SearchScreen()),
-            ),
-          ]),
-          StatefulShellBranch(routes: [
-            GoRoute(
-              path: '/notifications',
-              name: 'studentNotifications',
-              pageBuilder: (ctx, state) =>
-                  _noTransitionPage(
-                      state.pageKey, const NotificationsScreen()),
-            ),
-          ]),
-          StatefulShellBranch(routes: [
-            GoRoute(
-              path: '/profile',
-              name: 'studentProfile',
-              pageBuilder: (ctx, state) =>
-                  _noTransitionPage(state.pageKey, const ProfileScreen()),
-            ),
-          ]),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/home',
+                name: 'studentHome',
+                pageBuilder: (ctx, state) =>
+                    _noTransitionPage(state.pageKey, const HomeScreen()),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/calendar',
+                name: 'studentCalendar',
+                pageBuilder: (ctx, state) =>
+                    _noTransitionPage(state.pageKey, const CalendarScreen()),
+                // Day events are now shown inline below the calendar.
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/search',
+                name: 'studentSearch',
+                pageBuilder: (ctx, state) =>
+                    _noTransitionPage(state.pageKey, const SearchScreen()),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/notifications',
+                name: 'studentNotifications',
+                pageBuilder: (ctx, state) => _noTransitionPage(
+                  state.pageKey,
+                  const NotificationsScreen(),
+                ),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/profile',
+                name: 'studentProfile',
+                pageBuilder: (ctx, state) =>
+                    _noTransitionPage(state.pageKey, const ProfileScreen()),
+              ),
+            ],
+          ),
         ],
       ),
 
@@ -255,8 +266,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         name: 'clubEventDetail',
         pageBuilder: (ctx, state) {
           final id = state.pathParameters['id']!;
-          return _slidePage(
-              state.pageKey, ClubEventDetailScreen(eventId: id));
+          return _slidePage(state.pageKey, ClubEventDetailScreen(eventId: id));
         },
         routes: [
           GoRoute(
@@ -265,7 +275,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             pageBuilder: (ctx, state) {
               final id = state.pathParameters['id']!;
               return _slidePage(
-                  state.pageKey, ClubDiscussionScreen(eventId: id));
+                state.pageKey,
+                ClubDiscussionScreen(eventId: id),
+              );
             },
           ),
           GoRoute(
@@ -273,8 +285,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             name: 'clubEventAnnouncement',
             pageBuilder: (ctx, state) {
               final id = state.pathParameters['id']!;
-              return _slidePage(
-                  state.pageKey, AnnouncementScreen(eventId: id));
+              return _slidePage(state.pageKey, AnnouncementScreen(eventId: id));
             },
           ),
         ],
@@ -310,45 +321,64 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 
       // ── Club Shell (4 tabs) ───────────────────────────────────────────────
       StatefulShellRoute.indexedStack(
-        builder: (ctx, state, shell) =>
-            ClubShell(navigationShell: shell),
+        builder: (ctx, state, shell) => ClubShell(navigationShell: shell),
         branches: [
-          StatefulShellBranch(routes: [
-            GoRoute(
-              path: '/club/home',
-              name: 'clubHome',
-              pageBuilder: (ctx, state) =>
-                  _noTransitionPage(
-                      state.pageKey, const ClubDashboardScreen()),
-            ),
-          ]),
-          StatefulShellBranch(routes: [
-            GoRoute(
-              path: '/club/create',
-              name: 'clubCreate',
-              pageBuilder: (ctx, state) =>
-                  _noTransitionPage(
-                      state.pageKey, const CreateEventScreen()),
-            ),
-          ]),
-          StatefulShellBranch(routes: [
-            GoRoute(
-              path: '/club/manage',
-              name: 'clubManage',
-              pageBuilder: (ctx, state) =>
-                  _noTransitionPage(
-                      state.pageKey, const ManageEventsScreen()),
-            ),
-          ]),
-          StatefulShellBranch(routes: [
-            GoRoute(
-              path: '/club/profile',
-              name: 'clubProfile',
-              pageBuilder: (ctx, state) =>
-                  _noTransitionPage(
-                      state.pageKey, const ClubProfileScreen()),
-            ),
-          ]),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/club/home',
+                name: 'clubHome',
+                pageBuilder: (ctx, state) => _noTransitionPage(
+                  state.pageKey,
+                  const ClubDashboardScreen(),
+                ),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/club/create',
+                name: 'clubCreate',
+                pageBuilder: (ctx, state) =>
+                    _noTransitionPage(state.pageKey, const CreateEventScreen()),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/club/manage',
+                name: 'clubManage',
+                pageBuilder: (ctx, state) => _noTransitionPage(
+                  state.pageKey,
+                  const ManageEventsScreen(),
+                ),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/club/notifications',
+                name: 'clubNotifications',
+                pageBuilder: (ctx, state) => _noTransitionPage(
+                  state.pageKey,
+                  const ClubNotificationsScreen(),
+                ),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/club/profile',
+                name: 'clubProfile',
+                pageBuilder: (ctx, state) =>
+                    _noTransitionPage(state.pageKey, const ClubProfileScreen()),
+              ),
+            ],
+          ),
         ],
       ),
     ],
@@ -375,9 +405,9 @@ CustomTransitionPage _slidePage(LocalKey key, Widget child) =>
       transitionDuration: const Duration(milliseconds: 320),
       transitionsBuilder: (_, anim, _, child) => SlideTransition(
         position: Tween<Offset>(
-                begin: const Offset(1.0, 0), end: Offset.zero)
-            .animate(
-            CurvedAnimation(parent: anim, curve: Curves.easeOutCubic)),
+          begin: const Offset(1.0, 0),
+          end: Offset.zero,
+        ).animate(CurvedAnimation(parent: anim, curve: Curves.easeOutCubic)),
         child: child,
       ),
     );

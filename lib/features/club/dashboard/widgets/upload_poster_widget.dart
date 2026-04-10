@@ -16,7 +16,9 @@ class UploadPosterWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isSelected = imageFile != null || (existingImageUrl != null && existingImageUrl!.isNotEmpty);
+    final isSelected =
+        imageFile != null ||
+        (existingImageUrl != null && existingImageUrl!.isNotEmpty);
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
@@ -32,55 +34,51 @@ class UploadPosterWidget extends StatelessWidget {
             strokeAlign: BorderSide.strokeAlignInside,
           ),
         ),
-          child: isSelected
-              ? ClipRRect(
-                  borderRadius: BorderRadius.circular(18),
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      if (imageFile != null)
-                        Image.file(
-                          imageFile!,
-                          fit: BoxFit.cover,
-                        )
-                      else if (existingImageUrl != null)
-                        Image.network(
-                          existingImageUrl!,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, _, _) => const Center(child: Icon(Icons.error)),
-                        ),
-                      Container(
-                        color: Colors.black.withValues(alpha: 0.3),
+        child: isSelected
+            ? ClipRRect(
+                borderRadius: BorderRadius.circular(18),
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    if (imageFile != null)
+                      Image.file(imageFile!, fit: BoxFit.cover)
+                    else if (existingImageUrl != null)
+                      Image.network(
+                        existingImageUrl!,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, _, _) =>
+                            const Center(child: Icon(Icons.error)),
                       ),
-                      Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Container(
-                              width: 44,
-                              height: 44,
-                              decoration: BoxDecoration(
-                                color: Colors.black.withValues(alpha: 0.5),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: const Icon(
-                                Icons.edit_rounded,
-                                size: 22,
-                                color: Colors.white,
-                              ),
+                    Container(color: Colors.black.withValues(alpha: 0.3)),
+                    Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Container(
+                            width: 44,
+                            height: 44,
+                            decoration: BoxDecoration(
+                              color: Colors.black.withValues(alpha: 0.5),
+                              borderRadius: BorderRadius.circular(12),
                             ),
-                            const SizedBox(height: 8),
-                            const Text(
-                              'Tap to change image',
-                              style: TextStyle(color: Colors.white, fontSize: 12),
+                            child: const Icon(
+                              Icons.edit_rounded,
+                              size: 22,
+                              color: Colors.white,
                             ),
-                          ],
-                        ),
+                          ),
+                          const SizedBox(height: 8),
+                          const Text(
+                            'Tap to change image',
+                            style: TextStyle(color: Colors.white, fontSize: 12),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
-                )
-              : Column(
+                    ),
+                  ],
+                ),
+              )
+            : Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Container(
@@ -99,10 +97,7 @@ class UploadPosterWidget extends StatelessWidget {
                   const SizedBox(height: 10),
                   Text('Upload Event Poster', style: AppTextStyles.labelM),
                   const SizedBox(height: 4),
-                  Text(
-                    'JPG or PNG · Max 5MB',
-                    style: AppTextStyles.caption,
-                  ),
+                  Text('JPG or PNG · Max 5MB', style: AppTextStyles.caption),
                 ],
               ),
       ),

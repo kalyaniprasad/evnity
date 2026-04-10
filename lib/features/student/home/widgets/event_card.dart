@@ -31,8 +31,9 @@ class EventCard extends StatelessWidget {
           children: [
             // ── Poster Image ───────────────────────────────────────────────
             ClipRRect(
-              borderRadius:
-              const BorderRadius.vertical(top: Radius.circular(20)),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(20),
+              ),
               child: Stack(
                 children: [
                   Image.network(
@@ -44,8 +45,11 @@ class EventCard extends StatelessWidget {
                       height: compact ? 140 : 180,
                       color: AppColors.primarySurface,
                       child: const Center(
-                        child: Icon(Icons.image_outlined,
-                            size: 40, color: AppColors.primaryMuted),
+                        child: Icon(
+                          Icons.image_outlined,
+                          size: 40,
+                          color: AppColors.primaryMuted,
+                        ),
                       ),
                     ),
                     loadingBuilder: (_, child, loadingProgress) {
@@ -73,7 +77,7 @@ class EventCard extends StatelessWidget {
                         if (event.currentStatus == EventTimingStatus.live) ...[
                           const SizedBox(width: 8),
                           const LiveBadge(),
-                        ]
+                        ],
                       ],
                     ),
                   ),
@@ -84,7 +88,9 @@ class EventCard extends StatelessWidget {
                       right: 12,
                       child: Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 5),
+                          horizontal: 10,
+                          vertical: 5,
+                        ),
                         decoration: BoxDecoration(
                           color: const Color(0xFF16A34A),
                           borderRadius: BorderRadius.circular(20),
@@ -92,8 +98,11 @@ class EventCard extends StatelessWidget {
                         child: const Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.check_circle_rounded,
-                                size: 12, color: Colors.white),
+                            Icon(
+                              Icons.check_circle_rounded,
+                              size: 12,
+                              color: Colors.white,
+                            ),
                             SizedBox(width: 4),
                             Text(
                               'Registered',
@@ -126,8 +135,11 @@ class EventCard extends StatelessWidget {
                   const SizedBox(height: 8),
                   Row(
                     children: [
-                      const Icon(Icons.groups_outlined,
-                          size: 14, color: AppColors.textMuted),
+                      const Icon(
+                        Icons.groups_outlined,
+                        size: 14,
+                        color: AppColors.textMuted,
+                      ),
                       const SizedBox(width: 4),
                       Expanded(
                         child: Text(
@@ -145,16 +157,22 @@ class EventCard extends StatelessWidget {
                   const SizedBox(height: 6),
                   Row(
                     children: [
-                      const Icon(Icons.calendar_today_outlined,
-                          size: 13, color: AppColors.textMuted),
+                      const Icon(
+                        Icons.calendar_today_outlined,
+                        size: 13,
+                        color: AppColors.textMuted,
+                      ),
                       const SizedBox(width: 4),
                       Text(
                         '${event.date} · ${event.time}',
                         style: AppTextStyles.bodyS,
                       ),
                       const Spacer(),
-                      const Icon(Icons.people_outline_rounded,
-                          size: 13, color: AppColors.textMuted),
+                      const Icon(
+                        Icons.people_outline_rounded,
+                        size: 13,
+                        color: AppColors.textMuted,
+                      ),
                       const SizedBox(width: 4),
                       Text(
                         '${event.registrationCount}',

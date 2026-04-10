@@ -15,55 +15,61 @@ class HomeScreen extends ConsumerWidget {
     final user = ref.watch(currentUserProvider);
 
     return eventsAsync.when(
-      loading: () => const Scaffold(body: Center(child: CircularProgressIndicator())),
-      error: (e, st) => Scaffold(body: Center(child: Text('Error loading events: $e'))),
+      loading: () =>
+          const Scaffold(body: Center(child: CircularProgressIndicator())),
+      error: (e, st) =>
+          Scaffold(body: Center(child: Text('Error loading events: $e'))),
       data: (events) {
         final featured = events.take(2).toList();
         final upcoming = events.skip(2).toList();
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: CustomScrollView(
-        physics: const BouncingScrollPhysics(),
-        slivers: [
-          // ── Gradient Header ───────────────────────────────────────────
-          SliverToBoxAdapter(
-            child: _StudentHeader(
-              aliasName: user.aliasName,
-              onSearchTap: () => context.goNamed('studentSearch'),
-            ),
-          ),
-
-          SliverPadding(
-            padding: const EdgeInsets.all(20),
-            sliver: SliverList(
-              delegate: SliverChildListDelegate([
-                // ── Category Chips ──────────────────────────────────────
-                _CategoryRow(),
-                const SizedBox(height: 24),
-
-                // ── Featured ────────────────────────────────────────────
-                _SectionHeader(title: 'Featured Events', onSeeAll: () {}),
-                const SizedBox(height: 14),
-                ...featured.map((e) => Padding(
-                      padding: const EdgeInsets.only(bottom: 16),
-                      child: EventCard(event: e),
-                    )),
-
-                // ── Upcoming ─────────────────────────────────────────────
-                _SectionHeader(title: 'Upcoming Events', onSeeAll: () {}),
-                const SizedBox(height: 14),
-                ...upcoming.map((e) => Padding(
-                      padding: const EdgeInsets.only(bottom: 16),
-                      child: EventCard(event: e, compact: true),
-                    )),
-                  const SizedBox(height: 16),
-                ]),
+        return Scaffold(
+          backgroundColor: AppColors.background,
+          body: CustomScrollView(
+            physics: const BouncingScrollPhysics(),
+            slivers: [
+              // ── Gradient Header ───────────────────────────────────────────
+              SliverToBoxAdapter(
+                child: _StudentHeader(
+                  aliasName: user.aliasName,
+                  onSearchTap: () => context.goNamed('studentSearch'),
+                ),
               ),
-            ),
-          ],
-        ),
-      );
+
+              SliverPadding(
+                padding: const EdgeInsets.all(20),
+                sliver: SliverList(
+                  delegate: SliverChildListDelegate([
+                    // ── Category Chips ──────────────────────────────────────
+                    _CategoryRow(),
+                    const SizedBox(height: 24),
+
+                    // ── Featured ────────────────────────────────────────────
+                    _SectionHeader(title: 'Featured Events', onSeeAll: () {}),
+                    const SizedBox(height: 14),
+                    ...featured.map(
+                      (e) => Padding(
+                        padding: const EdgeInsets.only(bottom: 16),
+                        child: EventCard(event: e),
+                      ),
+                    ),
+
+                    // ── Upcoming ─────────────────────────────────────────────
+                    _SectionHeader(title: 'Upcoming Events', onSeeAll: () {}),
+                    const SizedBox(height: 14),
+                    ...upcoming.map(
+                      (e) => Padding(
+                        padding: const EdgeInsets.only(bottom: 16),
+                        child: EventCard(event: e, compact: true),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                  ]),
+                ),
+              ),
+            ],
+          ),
+        );
       },
     );
   }
@@ -75,10 +81,7 @@ class _StudentHeader extends StatelessWidget {
   final String aliasName;
   final VoidCallback onSearchTap;
 
-  const _StudentHeader({
-    required this.aliasName,
-    required this.onSearchTap,
-  });
+  const _StudentHeader({required this.aliasName, required this.onSearchTap});
 
   String get _initials {
     final words = aliasName.trim().split(' ');
@@ -130,8 +133,9 @@ class _StudentHeader extends StatelessWidget {
                 child: Center(
                   child: Text(
                     _initials,
-                    style: AppTextStyles.headingL
-                        .copyWith(color: AppColors.white),
+                    style: AppTextStyles.headingL.copyWith(
+                      color: AppColors.white,
+                    ),
                   ),
                 ),
               ),
@@ -156,12 +160,12 @@ class _StudentHeader extends StatelessWidget {
                             aliasName,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: AppTextStyles.headingL
-                                .copyWith(color: AppColors.white),
+                            style: AppTextStyles.headingL.copyWith(
+                              color: AppColors.white,
+                            ),
                           ),
                         ),
                         const SizedBox(width: 8),
-
                       ],
                     ),
                   ],
@@ -211,8 +215,7 @@ class _CategoryRow extends ConsumerWidget {
             onTap: () => notifier.setCategory(cat),
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               decoration: BoxDecoration(
                 color: isActive ? AppColors.primary : AppColors.white,
                 borderRadius: BorderRadius.circular(20),

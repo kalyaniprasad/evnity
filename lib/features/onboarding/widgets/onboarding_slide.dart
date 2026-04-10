@@ -30,10 +30,7 @@ class OnboardingSlide extends StatelessWidget {
             child: Container(
               width: size.width * 0.50,
               height: size.width * 0.50,
-              constraints: const BoxConstraints(
-                maxWidth: 210,
-                maxHeight: 210,
-              ),
+              constraints: const BoxConstraints(maxWidth: 210, maxHeight: 210),
               decoration: BoxDecoration(
                 color: data.iconBackground,
                 borderRadius: BorderRadius.circular(52),

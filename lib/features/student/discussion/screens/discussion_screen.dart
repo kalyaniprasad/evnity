@@ -78,21 +78,24 @@ class _DiscussionScreenState extends ConsumerState<DiscussionScreen> {
           Padding(
             padding: const EdgeInsets.only(right: 16),
             child: Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
               decoration: BoxDecoration(
                 color: AppColors.primarySurface,
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.people_outline_rounded,
-                      size: 14, color: AppColors.primary),
+                  const Icon(
+                    Icons.people_outline_rounded,
+                    size: 14,
+                    color: AppColors.primary,
+                  ),
                   const SizedBox(width: 4),
                   Text(
                     '${event?.registrationCount ?? 0}',
-                    style: AppTextStyles.labelS
-                        .copyWith(color: AppColors.primary),
+                    style: AppTextStyles.labelS.copyWith(
+                      color: AppColors.primary,
+                    ),
                   ),
                 ],
               ),
@@ -109,17 +112,24 @@ class _DiscussionScreenState extends ConsumerState<DiscussionScreen> {
               error: (err, st) => Center(child: Text('Error: $err')),
               data: (messages) {
                 if (messages.isEmpty) {
-                  return const Center(child: Text('No messages yet. Be the first to start the discussion!'));
+                  return const Center(
+                    child: Text(
+                      'No messages yet. Be the first to start the discussion!',
+                    ),
+                  );
                 }
                 return ListView.builder(
                   controller: _scrollController,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
                   physics: const BouncingScrollPhysics(),
                   itemCount: messages.length,
                   itemBuilder: (context, index) {
                     final msg = messages[index];
-                    final isMe = msg.senderType == MessageSenderType.student &&
+                    final isMe =
+                        msg.senderType == MessageSenderType.student &&
                         msg.senderId == currentUser.id;
                     return _MessageBubble(message: msg, isMe: isMe);
                   },
@@ -149,8 +159,9 @@ class _DiscussionScreenState extends ConsumerState<DiscussionScreen> {
                         keyboardType: TextInputType.multiline,
                         textInputAction: TextInputAction.send,
                         onSubmitted: (_) => _sendMessage(),
-                        style: AppTextStyles.bodyM
-                            .copyWith(color: AppColors.textPrimary),
+                        style: AppTextStyles.bodyM.copyWith(
+                          color: AppColors.textPrimary,
+                        ),
                         decoration: InputDecoration(
                           hintText: 'Ask a question...',
                           hintStyle: AppTextStyles.bodyM,
@@ -158,7 +169,9 @@ class _DiscussionScreenState extends ConsumerState<DiscussionScreen> {
                           enabledBorder: InputBorder.none,
                           focusedBorder: InputBorder.none,
                           contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 12),
+                            horizontal: 16,
+                            vertical: 12,
+                          ),
                         ),
                       ),
                     ),
@@ -180,8 +193,11 @@ class _DiscussionScreenState extends ConsumerState<DiscussionScreen> {
                           ),
                         ],
                       ),
-                      child: const Icon(Icons.send_rounded,
-                          color: Colors.white, size: 20),
+                      child: const Icon(
+                        Icons.send_rounded,
+                        color: Colors.white,
+                        size: 20,
+                      ),
                     ),
                   ),
                 ],
@@ -209,8 +225,9 @@ class _MessageBubble extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
-        mainAxisAlignment:
-            isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
+        mainAxisAlignment: isMe
+            ? MainAxisAlignment.end
+            : MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           if (!isMe) ...[
@@ -232,8 +249,9 @@ class _MessageBubble extends StatelessWidget {
           ],
           Flexible(
             child: Column(
-              crossAxisAlignment:
-                  isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+              crossAxisAlignment: isMe
+                  ? CrossAxisAlignment.end
+                  : CrossAxisAlignment.start,
               children: [
                 if (!isMe)
                   Padding(
@@ -254,7 +272,9 @@ class _MessageBubble extends StatelessWidget {
                           const SizedBox(width: 4),
                           Container(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 6, vertical: 2),
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
                             decoration: BoxDecoration(
                               color: AppColors.primary,
                               borderRadius: BorderRadius.circular(8),
@@ -262,9 +282,10 @@ class _MessageBubble extends StatelessWidget {
                             child: const Text(
                               'Organizer',
                               style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 9,
-                                  fontWeight: FontWeight.w700),
+                                color: Colors.white,
+                                fontSize: 9,
+                                fontWeight: FontWeight.w700,
+                              ),
                             ),
                           ),
                         ],
@@ -273,13 +294,15 @@ class _MessageBubble extends StatelessWidget {
                   ),
                 Container(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 14, vertical: 10),
+                    horizontal: 14,
+                    vertical: 10,
+                  ),
                   decoration: BoxDecoration(
                     color: isMe
                         ? AppColors.primary
                         : isOrganizer
-                            ? AppColors.primarySurface
-                            : AppColors.white,
+                        ? AppColors.primarySurface
+                        : AppColors.white,
                     borderRadius: BorderRadius.only(
                       topLeft: const Radius.circular(18),
                       topRight: const Radius.circular(18),
@@ -305,12 +328,8 @@ class _MessageBubble extends StatelessWidget {
                   ),
                 ),
                 Padding(
-                  padding:
-                      const EdgeInsets.only(top: 4, left: 4, right: 4),
-                  child: Text(
-                    message.timestamp,
-                    style: AppTextStyles.caption,
-                  ),
+                  padding: const EdgeInsets.only(top: 4, left: 4, right: 4),
+                  child: Text(message.timestamp, style: AppTextStyles.caption),
                 ),
               ],
             ),
@@ -323,7 +342,9 @@ class _MessageBubble extends StatelessWidget {
               child: Text(
                 'E',
                 style: AppTextStyles.labelS.copyWith(
-                    color: AppColors.primary, fontWeight: FontWeight.w700),
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
           ],

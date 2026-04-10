@@ -7,20 +7,20 @@ import '../../../../core/models/event_model.dart';
 
 Color getCategoryColor(String cat) => switch (cat) {
   'Technical' => AppColors.categoryTechnical,
-  'Cultural'  => AppColors.categoryCultural,
-  'Sports'    => AppColors.categorySports,
-  'Workshop'  => AppColors.categoryWorkshop,
-  'Seminar'   => AppColors.categorySeminar,
-  _           => AppColors.primary,
+  'Cultural' => AppColors.categoryCultural,
+  'Sports' => AppColors.categorySports,
+  'Workshop' => AppColors.categoryWorkshop,
+  'Seminar' => AppColors.categorySeminar,
+  _ => AppColors.primary,
 };
 
 Color getCategoryBg(String cat) => switch (cat) {
   'Technical' => AppColors.primarySurface,
-  'Cultural'  => AppColors.categoryCulturalBg,
-  'Sports'    => AppColors.successSurface,
-  'Workshop'  => AppColors.warningSurface,
-  'Seminar'   => AppColors.categorySeminarBg,
-  _           => AppColors.primarySurface,
+  'Cultural' => AppColors.categoryCulturalBg,
+  'Sports' => AppColors.successSurface,
+  'Workshop' => AppColors.warningSurface,
+  'Seminar' => AppColors.categorySeminarBg,
+  _ => AppColors.primarySurface,
 };
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -32,11 +32,7 @@ class CalendarEventCard extends StatefulWidget {
   final EventModel event;
   final int index;
 
-  const CalendarEventCard({
-    super.key,
-    required this.event,
-    this.index = 0,
-  });
+  const CalendarEventCard({super.key, required this.event, this.index = 0});
 
   @override
   State<CalendarEventCard> createState() => _CalendarEventCardState();
@@ -48,15 +44,15 @@ class _CalendarEventCardState extends State<CalendarEventCard> {
   @override
   Widget build(BuildContext context) {
     final color = getCategoryColor(widget.event.category);
-    final bg    = getCategoryBg(widget.event.category);
+    final bg = getCategoryBg(widget.event.category);
 
     return GestureDetector(
-      onTapDown:   (_) => setState(() => _pressed = true),
-      onTapUp:     (_) => setState(() => _pressed = false),
-      onTapCancel: ()  => setState(() => _pressed = false),
-      onTap:       ()  => context.push('/event/${widget.event.id}'),
+      onTapDown: (_) => setState(() => _pressed = true),
+      onTapUp: (_) => setState(() => _pressed = false),
+      onTapCancel: () => setState(() => _pressed = false),
+      onTap: () => context.push('/event/${widget.event.id}'),
       child: AnimatedScale(
-        scale:    _pressed ? 0.97 : 1.0,
+        scale: _pressed ? 0.97 : 1.0,
         duration: const Duration(milliseconds: 120),
         child: Padding(
           padding: const EdgeInsets.only(bottom: 12),
@@ -77,9 +73,7 @@ class _CalendarEventCardState extends State<CalendarEventCard> {
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 120),
                   decoration: BoxDecoration(
-                    color: _pressed
-                        ? AppColors.surfaceAlt
-                        : AppColors.surface,
+                    color: _pressed ? AppColors.surfaceAlt : AppColors.surface,
                     borderRadius: BorderRadius.circular(18),
                     border: Border.all(
                       color: _pressed
@@ -89,12 +83,12 @@ class _CalendarEventCardState extends State<CalendarEventCard> {
                     boxShadow: _pressed
                         ? []
                         : [
-                      const BoxShadow(
-                        color: AppColors.cardShadow,
-                        blurRadius: 14,
-                        offset: Offset(0, 3),
-                      ),
-                    ],
+                            const BoxShadow(
+                              color: AppColors.cardShadow,
+                              blurRadius: 14,
+                              offset: Offset(0, 3),
+                            ),
+                          ],
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -119,9 +113,9 @@ class _CalendarEventCardState extends State<CalendarEventCard> {
 // ── Timeline column ───────────────────────────────────────────────────────────
 
 class _TimelineColumn extends StatelessWidget {
-  final Color  color;
+  final Color color;
   final String time;
-  final bool   isFirst;
+  final bool isFirst;
 
   const _TimelineColumn({
     required this.color,
@@ -131,9 +125,9 @@ class _TimelineColumn extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final parts = time.split(' ');          // ['9:00', 'AM']
-    final hhmm  = parts[0];                 // '9:00'
-    final ampm  = parts.length > 1 ? parts[1] : '';
+    final parts = time.split(' '); // ['9:00', 'AM']
+    final hhmm = parts[0]; // '9:00'
+    final ampm = parts.length > 1 ? parts[1] : '';
 
     return SizedBox(
       width: 44,
@@ -180,11 +174,8 @@ class _TimelineColumn extends StatelessWidget {
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
-                end:   Alignment.bottomCenter,
-                colors: [
-                  color.withOpacity(0.25),
-                  color.withOpacity(0.0),
-                ],
+                end: Alignment.bottomCenter,
+                colors: [color.withOpacity(0.25), color.withOpacity(0.0)],
               ),
               borderRadius: BorderRadius.circular(2),
             ),
@@ -202,20 +193,14 @@ class _CardTop extends StatelessWidget {
   final Color color;
   final Color bg;
 
-  const _CardTop({
-    required this.event,
-    required this.color,
-    required this.bg,
-  });
+  const _CardTop({required this.event, required this.color, required this.bg});
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.fromLTRB(14, 14, 14, 10),
       decoration: BoxDecoration(
-        border: Border(
-          bottom: BorderSide(color: AppColors.divider, width: 1),
-        ),
+        border: Border(bottom: BorderSide(color: AppColors.divider, width: 1)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -227,7 +212,9 @@ class _CardTop extends StatelessWidget {
                 // Category chip
                 Container(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 8, vertical: 3),
+                    horizontal: 8,
+                    vertical: 3,
+                  ),
                   decoration: BoxDecoration(
                     color: bg,
                     borderRadius: BorderRadius.circular(6),
@@ -274,22 +261,23 @@ class _CardTop extends StatelessWidget {
                 color: bg,
                 child: Icon(Icons.image_outlined, color: color, size: 22),
               ),
-              loadingBuilder: (_, child, progress) =>
-              progress == null
+              loadingBuilder: (_, child, progress) => progress == null
                   ? child
                   : Container(
-                width: 54, height: 54,
-                color: AppColors.surfaceAlt,
-                child: const Center(
-                  child: SizedBox(
-                    width: 16, height: 16,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: AppColors.primary,
+                      width: 54,
+                      height: 54,
+                      color: AppColors.surfaceAlt,
+                      child: const Center(
+                        child: SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
-                ),
-              ),
             ),
           ),
         ],
@@ -313,10 +301,7 @@ class _CardBottom extends StatelessWidget {
       child: Column(
         children: [
           // Venue row
-          _InfoRow(
-            icon: Icons.location_on_rounded,
-            text: event.venue,
-          ),
+          _InfoRow(icon: Icons.location_on_rounded, text: event.venue),
           const SizedBox(height: 6),
           // Bottom row: registrations + registered badge
           Row(
@@ -343,14 +328,10 @@ class _CardBottom extends StatelessWidget {
 
 class _InfoRow extends StatelessWidget {
   final IconData icon;
-  final String   text;
-  final bool     flex;
+  final String text;
+  final bool flex;
 
-  const _InfoRow({
-    required this.icon,
-    required this.text,
-    this.flex = true,
-  });
+  const _InfoRow({required this.icon, required this.text, this.flex = true});
 
   @override
   Widget build(BuildContext context) {
@@ -385,14 +366,16 @@ class _GoingBadge extends StatelessWidget {
     decoration: BoxDecoration(
       color: AppColors.successSurface,
       borderRadius: BorderRadius.circular(20),
-      border: Border.all(
-          color: AppColors.success.withOpacity(0.3)),
+      border: Border.all(color: AppColors.success.withOpacity(0.3)),
     ),
     child: Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        const Icon(Icons.check_circle_rounded,
-            size: 11, color: AppColors.success),
+        const Icon(
+          Icons.check_circle_rounded,
+          size: 11,
+          color: AppColors.success,
+        ),
         const SizedBox(width: 4),
         Text(
           'Going',

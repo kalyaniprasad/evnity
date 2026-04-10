@@ -19,10 +19,10 @@ enum SnackbarType { success, warning, error, info }
 // ── Public entry point ────────────────────────────────────────────────────────
 
 void showAppSnackbar(
-    BuildContext context,
-    String message, {
-      SnackbarType type = SnackbarType.info,
-    }) {
+  BuildContext context,
+  String message, {
+  SnackbarType type = SnackbarType.info,
+}) {
   final overlay = Overlay.of(context);
   late OverlayEntry entry;
 
@@ -73,14 +73,17 @@ class _AppSnackbarWidgetState extends State<_AppSnackbarWidget>
       reverseDuration: const Duration(milliseconds: 200),
     );
 
-    _slide = Tween<Offset>(
-      begin: const Offset(0, -1.0),   // slides down from top
-      end: Offset.zero,
-    ).animate(CurvedAnimation(
-      parent: _ctrl,
-      curve: Curves.easeOutCubic,
-      reverseCurve: Curves.easeInCubic,
-    ));
+    _slide =
+        Tween<Offset>(
+          begin: const Offset(0, -1.0), // slides down from top
+          end: Offset.zero,
+        ).animate(
+          CurvedAnimation(
+            parent: _ctrl,
+            curve: Curves.easeOutCubic,
+            reverseCurve: Curves.easeInCubic,
+          ),
+        );
 
     _fade = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
@@ -111,31 +114,31 @@ class _AppSnackbarWidgetState extends State<_AppSnackbarWidget>
   // ── Per-type tokens ───────────────────────────────────────────────────────
 
   Color get _accent => switch (widget.type) {
-    SnackbarType.success => AppColors.success,           // 0xFF16A34A
-    SnackbarType.warning => AppColors.warning,           // 0xFFD97706
-    SnackbarType.error   => AppColors.error,             // 0xFFDC2626
-    SnackbarType.info    => AppColors.primary,           // 0xFF1E40AF
+    SnackbarType.success => AppColors.success, // 0xFF16A34A
+    SnackbarType.warning => AppColors.warning, // 0xFFD97706
+    SnackbarType.error => AppColors.error, // 0xFFDC2626
+    SnackbarType.info => AppColors.primary, // 0xFF1E40AF
   };
 
   Color get _surface => switch (widget.type) {
-    SnackbarType.success => AppColors.successSurface,    // 0xFFF0FDF4
-    SnackbarType.warning => AppColors.errorSurface,    // 0xFFFFFBEB
-    SnackbarType.error   => AppColors.errorSurface,      // 0xFFFEF2F2
-    SnackbarType.info    => AppColors.primarySurface,    // 0xFFEFF4FF
+    SnackbarType.success => AppColors.successSurface, // 0xFFF0FDF4
+    SnackbarType.warning => AppColors.errorSurface, // 0xFFFFFBEB
+    SnackbarType.error => AppColors.errorSurface, // 0xFFFEF2F2
+    SnackbarType.info => AppColors.primarySurface, // 0xFFEFF4FF
   };
 
   Color get _border => switch (widget.type) {
     SnackbarType.success => AppColors.success.withValues(alpha: 0.2),
     SnackbarType.warning => AppColors.warning.withValues(alpha: 0.2),
-    SnackbarType.error   => AppColors.error.withValues(alpha: 0.2),
-    SnackbarType.info    => AppColors.primaryBorder,     // 0xFFBFD0F5
+    SnackbarType.error => AppColors.error.withValues(alpha: 0.2),
+    SnackbarType.info => AppColors.primaryBorder, // 0xFFBFD0F5
   };
 
   IconData get _icon => switch (widget.type) {
     SnackbarType.success => Icons.check_circle_rounded,
     SnackbarType.warning => Icons.warning_amber_rounded,
-    SnackbarType.error   => Icons.cancel_rounded,
-    SnackbarType.info    => Icons.info_rounded,
+    SnackbarType.error => Icons.cancel_rounded,
+    SnackbarType.info => Icons.info_rounded,
   };
 
   @override
@@ -158,10 +161,7 @@ class _AppSnackbarWidgetState extends State<_AppSnackbarWidget>
                 onHorizontalDragEnd: (d) {
                   if ((d.primaryVelocity ?? 0) > 200) _dismiss();
                 },
-                child: Material(
-                  color: Colors.transparent,
-                  child: _buildCard(),
-                ),
+                child: Material(color: Colors.transparent, child: _buildCard()),
               ),
             ),
           ),
@@ -178,12 +178,12 @@ class _AppSnackbarWidgetState extends State<_AppSnackbarWidget>
         border: Border.all(color: _border, width: 1),
         boxShadow: const [
           BoxShadow(
-            color: AppColors.shadowLight,       // 0x08000000
+            color: AppColors.shadowLight, // 0x08000000
             blurRadius: 8,
             offset: Offset(0, 2),
           ),
           BoxShadow(
-            color: AppColors.shadowMedium,      // 0x14000000
+            color: AppColors.shadowMedium, // 0x14000000
             blurRadius: 20,
             offset: Offset(0, 8),
           ),
@@ -192,11 +192,10 @@ class _AppSnackbarWidgetState extends State<_AppSnackbarWidget>
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-
           // ── Left accent stripe ─────────────────────────────────────────
           Container(
             width: 4,
-            height: 68,                         // taller stripe
+            height: 68, // taller stripe
             decoration: BoxDecoration(
               color: _accent,
               borderRadius: const BorderRadius.only(
@@ -211,8 +210,7 @@ class _AppSnackbarWidgetState extends State<_AppSnackbarWidget>
           // ── Icon ───────────────────────────────────────────────────────
           Icon(_icon, size: 24, color: _accent), // 20 → 24
 
-          const SizedBox(width: 12),             // 10 → 12
-
+          const SizedBox(width: 12), // 10 → 12
           // ── Message ────────────────────────────────────────────────────
           Expanded(
             child: Padding(
@@ -240,13 +238,11 @@ class _AppSnackbarWidgetState extends State<_AppSnackbarWidget>
           //     ),
           //   ),
           // ),
-
         ],
       ),
     );
   }
 }
-
 
 // import 'dart:async';
 // import 'package:flutter/material.dart';

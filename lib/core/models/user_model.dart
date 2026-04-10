@@ -31,17 +31,16 @@ class UserModel {
     String? branch,
     String? year,
     String? bio,
-  }) =>
-      UserModel(
-        id: id,
-        email: email,
-        name: name ?? this.name,
-        aliasName: aliasName ?? this.aliasName,
-        role: role,
-        avatarUrl: avatarUrl ?? this.avatarUrl,
-        registeredEventIds: registeredEventIds ?? this.registeredEventIds,
-        branch: branch ?? this.branch,
-        year: year ?? this.year,
-        bio: bio ?? this.bio,
-      );
+  }) => UserModel(
+    id: id,
+    email: email,
+    name: name ?? this.name,
+    aliasName: aliasName ?? this.aliasName,
+    role: role,
+    avatarUrl: avatarUrl ?? this.avatarUrl,
+    registeredEventIds: registeredEventIds ?? this.registeredEventIds,
+    branch: branch ?? this.branch,
+    year: year ?? this.year,
+    bio: bio ?? this.bio,
+  );
 }

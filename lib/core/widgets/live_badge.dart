@@ -7,15 +7,19 @@ class LiveBadge extends StatefulWidget {
   State<LiveBadge> createState() => _LiveBadgeState();
 }
 
-class _LiveBadgeState extends State<LiveBadge> with SingleTickerProviderStateMixin {
+class _LiveBadgeState extends State<LiveBadge>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
-  
+
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(vsync: this, duration: const Duration(seconds: 1))..repeat(reverse: true);
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 1),
+    )..repeat(reverse: true);
   }
-  
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -31,28 +35,29 @@ class _LiveBadgeState extends State<LiveBadge> with SingleTickerProviderStateMix
           FadeTransition(
             opacity: _controller,
             child: Container(
-              width: 8, height: 8,
+              width: 8,
+              height: 8,
               decoration: const BoxDecoration(
-                color: Colors.redAccent, 
+                color: Colors.redAccent,
                 shape: BoxShape.circle,
               ),
             ),
           ),
           const SizedBox(width: 6),
           const Text(
-            "LIVE", 
+            "LIVE",
             style: TextStyle(
-              color: Colors.redAccent, 
-              fontWeight: FontWeight.bold, 
+              color: Colors.redAccent,
+              fontWeight: FontWeight.bold,
               fontSize: 11,
               letterSpacing: 0.5,
-            )
+            ),
           ),
         ],
       ),
     );
   }
-  
+
   @override
   void dispose() {
     _controller.dispose();

@@ -17,111 +17,114 @@ class NotificationsScreen extends ConsumerWidget {
     final isProfileIncomplete = ref.watch(isProfileIncompleteProvider);
 
     return notificationsAsync.when(
-      loading: () => const Scaffold(body: Center(child: CircularProgressIndicator())),
+      loading: () =>
+          const Scaffold(body: Center(child: CircularProgressIndicator())),
       error: (err, st) => Scaffold(body: Center(child: Text('Error: $err'))),
       data: (notifications) {
         final unreadList = notifications.where((n) => !n.isRead).toList();
         final readList = notifications.where((n) => n.isRead).toList();
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: AppColors.white,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        automaticallyImplyLeading: false,
-        title: Text('Notifications', style: AppTextStyles.headingL),
-        actions: [
-          if (unread > 0)
-            TextButton(
-              onPressed: () => repo.markAllAsRead(user.id),
-              child: Text(
-                'Mark all read',
-                style: AppTextStyles.labelS.copyWith(color: AppColors.primary),
-              ),
-            ),
-          const SizedBox(width: 8),
-        ],
-      ),
-      body: (notifications.isEmpty && !isProfileIncomplete)
-          ? const _EmptyNotifications()
-          : CustomScrollView(
-              physics: const BouncingScrollPhysics(),
-              slivers: [
-                if (isProfileIncomplete)
-                  const SliverToBoxAdapter(
-                    child: Padding(
-                      padding: EdgeInsets.fromLTRB(16, 16, 16, 0),
-                      child: _ProfileCompletionBanner(),
+        return Scaffold(
+          backgroundColor: AppColors.background,
+          appBar: AppBar(
+            backgroundColor: AppColors.white,
+            elevation: 0,
+            scrolledUnderElevation: 0,
+            automaticallyImplyLeading: false,
+            title: Text('Notifications', style: AppTextStyles.headingL),
+            actions: [
+              if (unread > 0)
+                TextButton(
+                  onPressed: () => repo.markAllAsRead(user.id),
+                  child: Text(
+                    'Mark all read',
+                    style: AppTextStyles.labelS.copyWith(
+                      color: AppColors.primary,
                     ),
                   ),
+                ),
+              const SizedBox(width: 8),
+            ],
+          ),
+          body: (notifications.isEmpty && !isProfileIncomplete)
+              ? const _EmptyNotifications()
+              : CustomScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  slivers: [
+                    if (isProfileIncomplete)
+                      const SliverToBoxAdapter(
+                        child: Padding(
+                          padding: EdgeInsets.fromLTRB(16, 16, 16, 0),
+                          child: _ProfileCompletionBanner(),
+                        ),
+                      ),
 
-                if (unreadList.isNotEmpty) ...[
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding:
-                          const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                      child: Row(
-                        children: [
-                          Text('New', style: AppTextStyles.headingM),
-                          const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 3),
-                            decoration: BoxDecoration(
-                              color: AppColors.primary,
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Text(
-                              '$unread',
-                              style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w700),
-                            ),
+                    if (unreadList.isNotEmpty) ...[
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                          child: Row(
+                            children: [
+                              Text('New', style: AppTextStyles.headingM),
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 3,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: AppColors.primary,
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Text(
+                                  '$unread',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  SliverPadding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    sliver: SliverList(
-                      delegate: SliverChildBuilderDelegate(
-                        (context, i) => _NotificationTile(
-                          notification: unreadList[i],
-                          onTap: () => repo.markAsRead(unreadList[i].id),
                         ),
-                        childCount: unreadList.length,
                       ),
-                    ),
-                  ),
-                ],
-                if (readList.isNotEmpty) ...[
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding:
-                          const EdgeInsets.fromLTRB(16, 20, 16, 8),
-                      child: Text('Earlier',
-                          style: AppTextStyles.headingM),
-                    ),
-                  ),
-                  SliverPadding(
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
-                    sliver: SliverList(
-                      delegate: SliverChildBuilderDelegate(
-                        (context, i) => _NotificationTile(
-                          notification: readList[i],
-                          onTap: () {},
+                      SliverPadding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        sliver: SliverList(
+                          delegate: SliverChildBuilderDelegate(
+                            (context, i) => _NotificationTile(
+                              notification: unreadList[i],
+                              onTap: () => repo.markAsRead(unreadList[i].id),
+                            ),
+                            childCount: unreadList.length,
+                          ),
                         ),
-                        childCount: readList.length,
                       ),
-                    ),
-                  ),
-                ],
-              ],
-            ),
-    );
+                    ],
+                    if (readList.isNotEmpty) ...[
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
+                          child: Text('Earlier', style: AppTextStyles.headingM),
+                        ),
+                      ),
+                      SliverPadding(
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
+                        sliver: SliverList(
+                          delegate: SliverChildBuilderDelegate(
+                            (context, i) => _NotificationTile(
+                              notification: readList[i],
+                              onTap: () {},
+                            ),
+                            childCount: readList.length,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+        );
       },
     );
   }
@@ -133,32 +136,31 @@ class _NotificationTile extends StatelessWidget {
   final NotificationModel notification;
   final VoidCallback onTap;
 
-  const _NotificationTile(
-      {required this.notification, required this.onTap});
+  const _NotificationTile({required this.notification, required this.onTap});
 
   IconData get _icon => switch (notification.type) {
-        NotificationType.eventUpdate => Icons.update_rounded,
-        NotificationType.reminder => Icons.alarm_rounded,
-        NotificationType.announcement => Icons.campaign_rounded,
-        NotificationType.registration => Icons.check_circle_rounded,
-        NotificationType.profileIncomplete => Icons.person_add_alt_1_rounded,
-      };
+    NotificationType.eventUpdate => Icons.update_rounded,
+    NotificationType.reminder => Icons.alarm_rounded,
+    NotificationType.announcement => Icons.campaign_rounded,
+    NotificationType.registration => Icons.check_circle_rounded,
+    NotificationType.profileIncomplete => Icons.person_add_alt_1_rounded,
+  };
 
   Color get _iconColor => switch (notification.type) {
-        NotificationType.eventUpdate => const Color(0xFF1E40AF),
-        NotificationType.reminder => const Color(0xFFD97706),
-        NotificationType.announcement => const Color(0xFF7C3AED),
-        NotificationType.registration => const Color(0xFF16A34A),
-        NotificationType.profileIncomplete => const Color(0xFFD97706),
-      };
+    NotificationType.eventUpdate => const Color(0xFF1E40AF),
+    NotificationType.reminder => const Color(0xFFD97706),
+    NotificationType.announcement => const Color(0xFF7C3AED),
+    NotificationType.registration => const Color(0xFF16A34A),
+    NotificationType.profileIncomplete => const Color(0xFFD97706),
+  };
 
   Color get _iconBg => switch (notification.type) {
-        NotificationType.eventUpdate => const Color(0xFFEFF4FF),
-        NotificationType.reminder => const Color(0xFFFFFBEB),
-        NotificationType.announcement => const Color(0xFFF5F3FF),
-        NotificationType.registration => const Color(0xFFF0FDF4),
-        NotificationType.profileIncomplete => const Color(0xFFFFFBEB),
-      };
+    NotificationType.eventUpdate => const Color(0xFFEFF4FF),
+    NotificationType.reminder => const Color(0xFFFFFBEB),
+    NotificationType.announcement => const Color(0xFFF5F3FF),
+    NotificationType.registration => const Color(0xFFF0FDF4),
+    NotificationType.profileIncomplete => const Color(0xFFFFFBEB),
+  };
 
   @override
   Widget build(BuildContext context) {
@@ -229,10 +231,7 @@ class _NotificationTile extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 6),
-                  Text(
-                    notification.timestamp,
-                    style: AppTextStyles.caption,
-                  ),
+                  Text(notification.timestamp, style: AppTextStyles.caption),
                 ],
               ),
             ),
@@ -259,8 +258,11 @@ class _EmptyNotifications extends StatelessWidget {
               color: AppColors.primarySurface,
               borderRadius: BorderRadius.circular(24),
             ),
-            child: const Icon(Icons.notifications_off_outlined,
-                size: 40, color: AppColors.primaryMuted),
+            child: const Icon(
+              Icons.notifications_off_outlined,
+              size: 40,
+              color: AppColors.primaryMuted,
+            ),
           ),
           const SizedBox(height: 16),
           Text('No notifications yet', style: AppTextStyles.headingM),

@@ -14,48 +14,60 @@ class NotificationRepository {
           .orderBy('createdAt', descending: true)
           .snapshots()
           .map((snapshot) {
-        return snapshot.docs.map((doc) {
-          final data = doc.data();
-        
-        // Parse type
-        NotificationType type;
-        switch (data['type']) {
-          case 'registration': type = NotificationType.registration; break;
-          case 'eventUpdate': type = NotificationType.eventUpdate; break;
-          case 'reminder': type = NotificationType.reminder; break;
-          case 'announcement': type = NotificationType.announcement; break;
-          case 'profileIncomplete': type = NotificationType.profileIncomplete; break;
-          default: type = NotificationType.announcement; break;
-        }
+            return snapshot.docs.map((doc) {
+              final data = doc.data();
 
-        // Format simple timestamp relative logic could go here; returning raw or assumed formatted for now
-        // Typically handled by UI via timeago package. For minimal change, passing existing field or generic 'just now'
-        String timeStr = 'Recently';
-        if (data['createdAt'] != null) {
-          final DateTime dt = (data['createdAt'] as Timestamp).toDate();
-          final diff = DateTime.now().difference(dt);
-          if (diff.inDays > 1) {
-            timeStr = '${diff.inDays} days ago';
-          } else if (diff.inHours > 0) {
-            timeStr = '${diff.inHours} hours ago';
-          } else if (diff.inMinutes > 0) {
-            timeStr = '${diff.inMinutes} mins ago';
-          } else {
-            timeStr = 'Just now';
-          }
-        }
+              // Parse type
+              NotificationType type;
+              switch (data['type']) {
+                case 'registration':
+                  type = NotificationType.registration;
+                  break;
+                case 'eventUpdate':
+                  type = NotificationType.eventUpdate;
+                  break;
+                case 'reminder':
+                  type = NotificationType.reminder;
+                  break;
+                case 'announcement':
+                  type = NotificationType.announcement;
+                  break;
+                case 'profileIncomplete':
+                  type = NotificationType.profileIncomplete;
+                  break;
+                default:
+                  type = NotificationType.announcement;
+                  break;
+              }
 
-        return NotificationModel(
-          id: doc.id,
-          title: data['title'] ?? '',
-          description: data['description'] ?? '',
-          timestamp: timeStr,
-          type: type,
-          isRead: data['isRead'] ?? false,
-          eventId: data['eventId'],
-        );
-      }).toList();
-    });
+              // Format simple timestamp relative logic could go here; returning raw or assumed formatted for now
+              // Typically handled by UI via timeago package. For minimal change, passing existing field or generic 'just now'
+              String timeStr = 'Recently';
+              if (data['createdAt'] != null) {
+                final DateTime dt = (data['createdAt'] as Timestamp).toDate();
+                final diff = DateTime.now().difference(dt);
+                if (diff.inDays > 1) {
+                  timeStr = '${diff.inDays} days ago';
+                } else if (diff.inHours > 0) {
+                  timeStr = '${diff.inHours} hours ago';
+                } else if (diff.inMinutes > 0) {
+                  timeStr = '${diff.inMinutes} mins ago';
+                } else {
+                  timeStr = 'Just now';
+                }
+              }
+
+              return NotificationModel(
+                id: doc.id,
+                title: data['title'] ?? '',
+                description: data['description'] ?? '',
+                timestamp: timeStr,
+                type: type,
+                isRead: data['isRead'] ?? false,
+                eventId: data['eventId'],
+              );
+            }).toList();
+          });
     } catch (e) {
       if (kDebugMode) print('Notification Stream Error: $e');
       return Stream.value([]);
@@ -149,15 +161,18 @@ class NotificationRepository {
       'senderClubId': senderClubId,
       'title': title,
       'message': message,
-      'target': 'all',
+      'target': 'broadcast_all',
       'createdAt': FieldValue.serverTimestamp(),
     });
 
     // 2. Create notification documents for all students
     // In a real app, this would be a Cloud Function triggered by the above write.
     // For now, we fetch all students and create notifications.
-    final students = await _db.collection('users').where('role', isEqualTo: 'student').get();
-    
+    final students = await _db
+        .collection('users')
+        .where('role', isEqualTo: 'student')
+        .get();
+
     final batch = _db.batch();
     for (var student in students.docs) {
       final notifRef = _db.collection('notifications').doc();
@@ -192,8 +207,12 @@ class NotificationRepository {
     });
 
     // 2. Get registered users
-    final registrations = await _db.collection('events').doc(eventId).collection('registrations').get();
-    
+    final registrations = await _db
+        .collection('events')
+        .doc(eventId)
+        .collection('registrations')
+        .get();
+
     final batch = _db.batch();
     for (var reg in registrations.docs) {
       final userId = reg.id; // Doc ID is the userId

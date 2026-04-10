@@ -40,11 +40,15 @@ class _ClubProfileEditScreenState extends ConsumerState<ClubProfileEditScreen> {
   void initState() {
     super.initState();
     final p = ref.read(clubProfileProvider);
-    _nameCtrl = TextEditingController(text: p.name);
+    final currentUser = ref.read(currentUserProvider);
+
+    _nameCtrl = TextEditingController(
+        text: p.name.isNotEmpty ? p.name : currentUser.name);
     _taglineCtrl = TextEditingController(text: p.tagline);
     _descCtrl = TextEditingController(text: p.description);
     _mentorCtrl = TextEditingController(text: p.facultyMentor);
-    _emailCtrl = TextEditingController(text: p.email);
+    _emailCtrl = TextEditingController(
+        text: p.email.isNotEmpty ? p.email : currentUser.email);
     _foundedCtrl = TextEditingController(text: p.founded);
     _locationCtrl = TextEditingController(text: p.location);
     _selectedCategory = p.category;
@@ -114,7 +118,8 @@ class _ClubProfileEditScreenState extends ConsumerState<ClubProfileEditScreen> {
         ref.read(currentUserProvider.notifier).updateAlias(name);
 
         // Dismiss profile-incomplete notification if profile is now complete
-        final isNowComplete = tagline.isNotEmpty &&
+        final isNowComplete =
+            tagline.isNotEmpty &&
             description.isNotEmpty &&
             mentor.isNotEmpty &&
             location.isNotEmpty;
@@ -424,8 +429,8 @@ class _EditField extends StatelessWidget {
     required this.hint,
     required this.controller,
     required this.icon,
-    this.readOnly = false,
     this.maxLines = 1,
+    this.readOnly = false,
     this.keyboardType = TextInputType.text,
     this.validator,
   });
