@@ -52,7 +52,6 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_launcher_icons: ^0.13.1 
-  flutter_native_splash: ^2.4.0
 
 
 
@@ -63,19 +62,9 @@ dev_dependencies:
   riverpod_lint: ^2.3.10
 
 flutter_launcher_icons:
-  android: true
+  android: "launcher_icon"
   ios: true
-  image_path: "assets/icons/logo.jpeg"
-  adaptive_icon_background: "#FFFFFF"
-  adaptive_icon_foreground: "assets/icons/logo.jpeg"
-
-flutter_native_splash:
-  color: "#FFFFFF"
-  image: assets/icons/transparent.png
-  android_12:
-    color: "#FFFFFF"
-    image: assets/icons/transparent.png
-  web: false
+  image_path: "assets/icons/evnity_logo.jpeg"
 
   
 flutter:
@@ -83,4 +72,3 @@ flutter:
 
   assets:
     - assets/sounds/
-    - assets/icons/
