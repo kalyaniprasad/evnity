@@ -315,7 +315,7 @@ class _EventRegistrationsScreenState
                           physics: const BouncingScrollPhysics(),
                           padding: const EdgeInsets.all(16),
                           itemCount: _filteredRegistrations.length,
-                          separatorBuilder: (_, __) => const SizedBox(height: 12),
+                          separatorBuilder: (_, _) => const SizedBox(height: 12),
                           itemBuilder: (ctx, i) {
                             final reg = _filteredRegistrations[i];
                             return _RegistrationCard(
@@ -685,7 +685,7 @@ class _FileResponseRow extends StatelessWidget {
                 height: 140,
                 width: double.infinity,
                 fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => _linkFallback(context),
+                errorBuilder: (_, _, _) => _linkFallback(context),
               ),
             )
           else

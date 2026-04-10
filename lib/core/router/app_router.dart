@@ -9,6 +9,7 @@ import '../../features/onboarding/screens/onboarding_screen.dart';
 import '../../features/auth/screens/auth_screen.dart';
 import '../../features/auth/screens/email_verification_screen.dart';
 import '../../features/auth/screens/registration_success_screen.dart';
+import '../../features/auth/screens/waiting_approval_screen.dart';
 
 // Student shell + screens
 import '../../features/student/shell/student_shell.dart';
@@ -58,9 +59,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     redirect: (context, state) {
       final userAsync = ref.read(firebaseUserProvider);
       final roleAsync = ref.read(userRoleProvider);
+      final statusAsync = ref.read(clubStatusProvider);
 
       // While loading, don't redirect
-      if (userAsync.isLoading || roleAsync.isLoading) return null;
+      if (userAsync.isLoading || roleAsync.isLoading || statusAsync.isLoading) return null;
 
       final user = userAsync.valueOrNull;
       final currentPath = state.uri.path;
@@ -105,9 +107,20 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       if (role == null) {
         return isPreAuth ? '/home' : null;
       }
+      
+      // ── Club Status Guard ───────────────────────────────────────────────────
+      if (role == 'club') {
+        final status = statusAsync.valueOrNull;
+        if (status != 'approved') {
+          if (currentPath != '/waiting-approval') return '/waiting-approval';
+          return null; // Stay on waiting approval screen
+        } else if (currentPath == '/waiting-approval') {
+          return '/club/home';
+        }
+      }
 
       // Push authenticated users away from pre-auth screens
-      if (isPreAuth) {
+      if (isPreAuth || currentPath == '/waiting-approval') {
         return role == 'club' ? '/club/home' : '/home';
       }
 
@@ -149,6 +162,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         name: 'registrationSuccess',
         pageBuilder: (ctx, state) =>
             _fadePage(state.pageKey, const RegistrationSuccessScreen()),
+      ),
+      GoRoute(
+        path: '/waiting-approval',
+        name: 'waitingApproval',
+        pageBuilder: (ctx, state) =>
+            _fadePage(state.pageKey, const WaitingApprovalScreen()),
       ),
 
       // ── Student: profile edit (outside shell, full-screen slide) ───────────

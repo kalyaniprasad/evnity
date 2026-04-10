@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -37,6 +38,11 @@ class RouterNotifier extends ChangeNotifier {
       userRoleProvider,
       (_, _) => notifyListeners(),
     );
+    // Listen to club status – notifies GoRouter on status updates.
+    ref.listen<AsyncValue<String?>>(
+      clubStatusProvider,
+      (_, _) => notifyListeners(),
+    );
   }
 }
 
@@ -56,7 +62,31 @@ final userRoleProvider = FutureProvider<String?>((ref) async {
   if (user == null) return null;
 
   final authService = ref.read(authServiceProvider);
-  return authService.getUserRole(user.uid);
+  return authService.getUserRole(user.uid, email: user.email);
+});
+
+// ── Club Status Provider ──────────────────────────────────────────────────────
+
+/// Streams the club's status ('pending' | 'approved') from Firestore.
+/// Yields null if the user is not a club or not signed in.
+final clubStatusProvider = StreamProvider<String?>((ref) async* {
+  final user = await ref.watch(firebaseUserProvider.future);
+  if (user == null) {
+    yield null;
+    return;
+  }
+
+  final role = await ref.watch(userRoleProvider.future);
+  if (role != 'club') {
+    yield null;
+    return;
+  }
+
+  yield* FirebaseFirestore.instance
+      .collection('clubs')
+      .doc(user.uid)
+      .snapshots()
+      .map((doc) => doc.data()?['status'] as String?);
 });
 
 // ── Auth Form State ───────────────────────────────────────────────────────────

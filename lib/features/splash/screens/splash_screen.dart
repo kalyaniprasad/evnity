@@ -74,28 +74,13 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                 scale: _scaleAnim,
                 child: Column(
                   children: [
-                    // Logo Container
-                    Container(
-                      width: 100,
-                      height: 100,
-                      decoration: BoxDecoration(
-                        color: AppColors.primary,
-                        borderRadius: BorderRadius.circular(28),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppColors.primary.withOpacity(0.30),
-                            blurRadius: 36,
-                            offset: const Offset(0, 14),
-                          ),
-                        ],
-                      ),
-                      child: const Center(
-                        child: Icon(
-                          Icons.event_rounded,
-                          size: 52,
-                          color: AppColors.white,
-                        ),
-                      ),
+                    // Custom Flutter Logo (Change width/height below to resize your logo)
+                    Image.asset(
+                      'assets/logo/splash.png',
+                      width: 100, // Adjust this number here to resize the logo!
+                      height:
+                          100, // Adjust this number here to resize the logo!
+                      fit: BoxFit.contain,
                     ),
                     const SizedBox(height: 24),
 

@@ -217,7 +217,7 @@ class _AnnouncementScreenState extends ConsumerState<AnnouncementScreen> {
                         ),
                         child: DropdownButtonHideUnderline(
                           child: DropdownButtonFormField<String>(
-                            value: _selectedTargetEventId ?? 'all',
+                            initialValue: _selectedTargetEventId ?? 'all',
                             isExpanded: true,
                             decoration: const InputDecoration(
                               border: InputBorder.none,

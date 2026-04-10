@@ -37,10 +37,19 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   }
 
   // ── Navigate based on role (called after successful auth) ─────────────────
-  void _navigateForRole(String? role) {
+  Future<void> _navigateForRole(String? role) async {
     if (!mounted) return;
     if (role == 'club') {
-      context.go('/club/home');
+      try {
+        final status = await ref.read(clubStatusProvider.future);
+        if (!mounted) return;
+        if (status != 'approved') {
+          context.go('/waiting-approval');
+          return;
+        }
+      } catch (_) {}
+      
+      if (mounted) context.go('/club/home');
     } else {
       context.go('/home');
     }
@@ -77,7 +86,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
 
     // Existing sign-in → navigate by role
     final role = await ref.read(userRoleProvider.future);
-    _navigateForRole(role);
+    await _navigateForRole(role);
   }
 
   // ── Google Sign-In ────────────────────────────────────────────────────────
@@ -132,7 +141,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
 
       // Returning Google user → navigate by role
       final role = await ref.read(userRoleProvider.future);
-      _navigateForRole(role);
+      await _navigateForRole(role);
     } on Exception catch (e) {
       if (mounted) {
         _showErrorSnackBar('Google sign-in failed: ${e.toString()}');

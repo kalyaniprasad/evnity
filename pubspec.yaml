@@ -51,24 +51,16 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_launcher_icons: ^0.13.1 
-
-
-
+  
   flutter_lints: ^6.0.0
   build_runner: ^2.4.9
   riverpod_generator: ^2.4.0
   custom_lint: ^0.6.4
   riverpod_lint: ^2.3.10
 
-flutter_launcher_icons:
-  android: "launcher_icon"
-  ios: true
-  image_path: "assets/icons/evnity_logo.jpeg"
-
-  
 flutter:
   uses-material-design: true
 
   assets:
     - assets/sounds/
+    - assets/logo/

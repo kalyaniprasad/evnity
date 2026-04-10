@@ -278,7 +278,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen>
                     ),
 
                     calendarBuilders: CalendarBuilders(
-                      markerBuilder: (_, __, ___) => const SizedBox.shrink(),
+                      markerBuilder: (_, _, _) => const SizedBox.shrink(),
                       defaultBuilder: (ctx, day, _) => _DayCell(
                         day: day,
                         events: _eventsForDay(day, all),
@@ -305,7 +305,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen>
                         isSelected: true,
                         isWeekend: false,
                       ),
-                      outsideBuilder: (_, __, ___) => const SizedBox.shrink(),
+                      outsideBuilder: (_, _, _) => const SizedBox.shrink(),
                     ),
 
                     onDaySelected: (sel, _) => _selectDay(sel),

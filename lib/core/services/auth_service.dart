@@ -29,14 +29,21 @@ class AuthService {
     await credential.user!.updateDisplayName(name);
 
     // Persist role + profile to Firestore
-    await _db.collection('users').doc(credential.user!.uid).set({
+    final collection = role == 'club' ? 'clubs' : 'users';
+    final data = {
       'uid': credential.user!.uid,
       'email': email,
       'name': name,
       'aliasName': role == 'club' ? '' : AliasGenerator.generate(),
       'role': role,
       'createdAt': FieldValue.serverTimestamp(),
-    });
+    };
+    
+    if (role == 'club') {
+      data['status'] = 'pending';
+    }
+
+    await _db.collection(collection).doc(credential.user!.uid).set(data);
 
     // Send email verification to the newly created user
     await credential.user!.sendEmailVerification();
@@ -93,14 +100,22 @@ class AuthService {
       if (userCredential.additionalUserInfo?.isNewUser == true) {
         final role = selectedRole ?? 'student';
         final displayName = userCredential.user!.displayName ?? 'User';
-        await _db.collection('users').doc(userCredential.user!.uid).set({
+        
+        final collection = role == 'club' ? 'clubs' : 'users';
+        final data = {
           'uid': userCredential.user!.uid,
           'email': userCredential.user!.email ?? '',
           'name': displayName,
           'aliasName': role == 'club' ? '' : AliasGenerator.generate(),
           'role': role,
           'createdAt': FieldValue.serverTimestamp(),
-        });
+        };
+
+        if (role == 'club') {
+          data['status'] = 'pending';
+        }
+
+        await _db.collection(collection).doc(userCredential.user!.uid).set(data);
       }
 
       return userCredential;
@@ -117,9 +132,24 @@ class AuthService {
   }
 
   // ── Fetch user role from Firestore ────────────────────────────────────────
-  Future<String?> getUserRole(String uid) async {
-    final doc = await _db.collection('users').doc(uid).get();
-    return doc.data()?['role'] as String?;
+  Future<String?> getUserRole(String uid, {String? email}) async {
+    // Check users collection first
+    var doc = await _db.collection('users').doc(uid).get();
+    if (doc.exists && doc.data() != null) {
+      if (email == null || doc.data()!['email'] == email) {
+        return doc.data()!['role'] as String?;
+      }
+    }
+    
+    // Fallback to clubs collection
+    doc = await _db.collection('clubs').doc(uid).get();
+    if (doc.exists && doc.data() != null) {
+      if (email == null || doc.data()!['email'] == email) {
+        return doc.data()!['role'] as String?;
+      }
+    }
+    
+    return null;
   }
 
   // ── Check registered role for an email address ──────────────────────────
@@ -127,13 +157,27 @@ class AuthService {
   /// found / Firestore is unreachable (offline). The call is non-throwing.
   Future<String?> checkEmailRole(String email) async {
     try {
-      final query = await _db
+      // Check users collection
+      var query = await _db
           .collection('users')
           .where('email', isEqualTo: email)
           .limit(1)
           .get();
-      if (query.docs.isEmpty) return null;
-      return query.docs.first.data()['role'] as String?;
+      if (query.docs.isNotEmpty) {
+        return query.docs.first.data()['role'] as String?;
+      }
+
+      // Check clubs collection
+      query = await _db
+          .collection('clubs')
+          .where('email', isEqualTo: email)
+          .limit(1)
+          .get();
+      if (query.docs.isNotEmpty) {
+        return query.docs.first.data()['role'] as String?;
+      }
+
+      return null;
     } catch (_) {
       return null; // offline or error – let sign-in proceed normally
     }

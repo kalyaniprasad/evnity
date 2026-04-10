@@ -675,7 +675,7 @@ class _FormPreview extends StatelessWidget {
                 Row(
                   children: [
                     Text(f.label, style: AppTextStyles.labelM),
-                    if (f.isRequired) 
+                    if (f.isRequired)
                       Text(' *', style: AppTextStyles.labelM.copyWith(color: AppColors.error)),
                   ],
                 ),
@@ -1475,7 +1475,7 @@ class _NestedFieldsEditor extends StatelessWidget {
           if (nestedFields.isEmpty)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 8),
-              child: Text('No internal fields added yet.', 
+              child: Text('No internal fields added yet.',
                 style: AppTextStyles.caption.copyWith(fontStyle: FontStyle.italic)),
             ),
           ...nestedFields.asMap().entries.map((entry) {
@@ -1753,7 +1753,7 @@ class _AttachmentEditorState extends State<_AttachmentEditor> {
                         ),
                       );
                     },
-                    errorBuilder: (_, __, ___) => Container(
+                    errorBuilder: (_, _, _) => Container(
                       color: AppColors.background,
                       child: const Center(
                         child: Column(

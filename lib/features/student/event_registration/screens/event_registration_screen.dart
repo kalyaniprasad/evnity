@@ -43,7 +43,7 @@ class _EventRegistrationScreenState
         final count = _getRepeatCount(field);
         final blocks = (_formResponses[field.id] as List?) ?? [];
         if (blocks.length < count) return false;
-        
+
         for (var i = 0; i < count; i++) {
           final blockData = blocks[i] as Map<String, dynamic>? ?? {};
           for (final nested in field.nestedFields ?? []) {
@@ -109,10 +109,10 @@ class _EventRegistrationScreenState
           'isRead': false,
         },
       );
-      
+
       ref.invalidate(currentUserProvider);
       await PushNotificationService.subscribeToEventTopic(event.id);
-      
+
       if (mounted) {
         showAppSnackbar(
           context,
@@ -323,12 +323,12 @@ class _EventRegistrationScreenState
   Widget _renderRepeatingInstance(RegistrationFieldModel block, int index) {
     final blockId = block.id;
     final List<dynamic> currentBlocks = List.from(_formResponses[blockId] ?? []);
-    
+
     // Ensure the list is long enough
     while (currentBlocks.length <= index) {
       currentBlocks.add(<String, dynamic>{});
     }
-    
+
     final Map<String, dynamic> instanceData = currentBlocks[index];
 
     return _SectionCard(
@@ -448,7 +448,7 @@ class _DynamicFieldWidgetState extends State<_DynamicFieldWidget> {
                             height: 180,
                             width: double.infinity,
                             fit: BoxFit.contain,
-                            errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                            errorBuilder: (_, _, _) => const SizedBox.shrink(),
                           ),
                         ),
                         const SizedBox(height: 6),
@@ -658,7 +658,7 @@ class _DynamicFieldWidgetState extends State<_DynamicFieldWidget> {
                 height: 160,
                 width: double.infinity,
                 fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                errorBuilder: (_, _, _) => const SizedBox.shrink(),
               ),
             ),
           )

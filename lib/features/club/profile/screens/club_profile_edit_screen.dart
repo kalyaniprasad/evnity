@@ -26,15 +26,7 @@ class _ClubProfileEditScreenState extends ConsumerState<ClubProfileEditScreen> {
   String _selectedCategory = 'Technical';
   final _formKey = GlobalKey<FormState>();
   bool _saving = false;
-
-  static const _categories = [
-    'Technical',
-    'Cultural',
-    'Sports',
-    'Workshop',
-    'Social',
-    'Academic',
-  ];
+  late List<String> _categories;
 
   @override
   void initState() {
@@ -43,15 +35,30 @@ class _ClubProfileEditScreenState extends ConsumerState<ClubProfileEditScreen> {
     final currentUser = ref.read(currentUserProvider);
 
     _nameCtrl = TextEditingController(
-        text: p.name.isNotEmpty ? p.name : currentUser.name);
+      text: p.name.isNotEmpty ? p.name : currentUser.name,
+    );
     _taglineCtrl = TextEditingController(text: p.tagline);
     _descCtrl = TextEditingController(text: p.description);
     _mentorCtrl = TextEditingController(text: p.facultyMentor);
     _emailCtrl = TextEditingController(
-        text: p.email.isNotEmpty ? p.email : currentUser.email);
+      text: p.email.isNotEmpty ? p.email : currentUser.email,
+    );
     _foundedCtrl = TextEditingController(text: p.founded);
     _locationCtrl = TextEditingController(text: p.location);
-    _selectedCategory = p.category;
+    
+    _categories = [
+      'Technical',
+      'Cultural',
+      'Sports',
+      'Workshop',
+      'Social',
+      'Academic',
+      'Other',
+    ];
+    _selectedCategory = p.category.isNotEmpty ? p.category : _categories.first;
+    if (!_categories.contains(_selectedCategory)) {
+      _categories.add(_selectedCategory);
+    }
   }
 
   @override
