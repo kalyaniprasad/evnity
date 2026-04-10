@@ -1,20 +1,46 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/theme.dart';
+import '../../../core/widgets/app_snackbar.dart';
+import '../../../core/providers/student_providers.dart';
+import '../../club/providers/club_providers.dart';
 
-class ClubShell extends StatelessWidget {
+class ClubShell extends ConsumerStatefulWidget {
   final StatefulNavigationShell navigationShell;
   const ClubShell({super.key, required this.navigationShell});
 
   @override
+  ConsumerState<ClubShell> createState() => _ClubShellState();
+}
+
+class _ClubShellState extends ConsumerState<ClubShell> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final incomplete = ref.read(isClubProfileIncompleteProvider);
+      if (incomplete && mounted) {
+        showAppSnackbar(
+          context,
+          '📋 Your club profile is incomplete. Nav to Profile to update it.',
+          type: SnackbarType.warning,
+        );
+      }
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final unread = ref.watch(unreadCountProvider);
     return Scaffold(
-      body: navigationShell,
+      body: widget.navigationShell,
       bottomNavigationBar: _ClubBottomNav(
-        currentIndex: navigationShell.currentIndex,
-        onTap: (index) => navigationShell.goBranch(
+        currentIndex: widget.navigationShell.currentIndex,
+        unreadCount: unread,
+        onTap: (index) => widget.navigationShell.goBranch(
           index,
-          initialLocation: index == navigationShell.currentIndex,
+          initialLocation: index == widget.navigationShell.currentIndex,
         ),
       ),
     );
@@ -23,10 +49,14 @@ class ClubShell extends StatelessWidget {
 
 class _ClubBottomNav extends StatelessWidget {
   final int currentIndex;
+  final int unreadCount;
   final ValueChanged<int> onTap;
 
-  const _ClubBottomNav(
-      {required this.currentIndex, required this.onTap});
+  const _ClubBottomNav({
+    required this.currentIndex,
+    required this.unreadCount,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -69,11 +99,19 @@ class _ClubBottomNav extends StatelessWidget {
                 onTap: () => onTap(2),
               ),
               _NavItem(
+                icon: Icons.notifications_outlined,
+                activeIcon: Icons.notifications_rounded,
+                label: 'Alerts',
+                isActive: currentIndex == 3,
+                badge: unreadCount,
+                onTap: () => onTap(3),
+              ),
+              _NavItem(
                 icon: Icons.groups_outlined,
                 activeIcon: Icons.groups_rounded,
                 label: 'Profile',
-                isActive: currentIndex == 3,
-                onTap: () => onTap(3),
+                isActive: currentIndex == 4,
+                onTap: () => onTap(4),
               ),
             ],
           ),
@@ -88,6 +126,7 @@ class _NavItem extends StatelessWidget {
   final IconData activeIcon;
   final String label;
   final bool isActive;
+  final int badge;
   final VoidCallback onTap;
 
   const _NavItem({
@@ -96,6 +135,7 @@ class _NavItem extends StatelessWidget {
     required this.label,
     required this.isActive,
     required this.onTap,
+    this.badge = 0,
   });
 
   @override
@@ -105,34 +145,56 @@ class _NavItem extends StatelessWidget {
       behavior: HitTestBehavior.opaque,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: isActive
-              ? AppColors.primarySurface
-              : Colors.transparent,
+          color: isActive ? AppColors.primarySurface : Colors.transparent,
           borderRadius: BorderRadius.circular(14),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              isActive ? activeIcon : icon,
-              size: 24,
-              color: isActive
-                  ? AppColors.primary
-                  : AppColors.textMuted,
+            Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Icon(
+                  isActive ? activeIcon : icon,
+                  size: 24,
+                  color: isActive ? AppColors.primary : AppColors.textMuted,
+                ),
+                if (badge > 0)
+                  Positioned(
+                    top: -4,
+                    right: -6,
+                    child: Container(
+                      padding: const EdgeInsets.all(3),
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFDC2626),
+                        shape: BoxShape.circle,
+                      ),
+                      constraints: const BoxConstraints(
+                        minWidth: 16,
+                        minHeight: 16,
+                      ),
+                      child: Text(
+                        badge > 9 ? '9+' : '$badge',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 9,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
             ),
             const SizedBox(height: 4),
             AnimatedDefaultTextStyle(
               duration: const Duration(milliseconds: 200),
               style: TextStyle(
                 fontSize: 11,
-                fontWeight:
-                    isActive ? FontWeight.w700 : FontWeight.w400,
-                color: isActive
-                    ? AppColors.primary
-                    : AppColors.textMuted,
+                fontWeight: isActive ? FontWeight.w700 : FontWeight.w400,
+                color: isActive ? AppColors.primary : AppColors.textMuted,
               ),
               child: Text(label),
             ),

@@ -60,16 +60,23 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                 child: TextField(
                   controller: _searchController,
                   onChanged: searchNotifier.setQuery,
-                  style: AppTextStyles.bodyM
-                      .copyWith(color: AppColors.textPrimary),
+                  style: AppTextStyles.bodyM.copyWith(
+                    color: AppColors.textPrimary,
+                  ),
                   decoration: InputDecoration(
                     hintText: 'Search events, clubs, categories...',
-                    prefixIcon: const Icon(Icons.search_rounded,
-                        color: AppColors.textMuted, size: 22),
+                    prefixIcon: const Icon(
+                      Icons.search_rounded,
+                      color: AppColors.textMuted,
+                      size: 22,
+                    ),
                     suffixIcon: hasQuery
                         ? IconButton(
-                            icon: const Icon(Icons.close_rounded,
-                                color: AppColors.textMuted, size: 20),
+                            icon: const Icon(
+                              Icons.close_rounded,
+                              color: AppColors.textMuted,
+                              size: 20,
+                            ),
                             onPressed: () {
                               _searchController.clear();
                               searchNotifier.clear();
@@ -80,7 +87,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                     enabledBorder: InputBorder.none,
                     focusedBorder: InputBorder.none,
                     contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 14),
+                      horizontal: 16,
+                      vertical: 14,
+                    ),
                   ),
                 ),
               ),
@@ -90,8 +99,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           // ── Category Filter Chips ──────────────────────────────────
           SliverToBoxAdapter(
             child: Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -101,14 +109,15 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                     spacing: 8,
                     runSpacing: 8,
                     children: kCategories.map((cat) {
-                      final isSelected =
-                          cat == searchState.selectedCategory;
+                      final isSelected = cat == searchState.selectedCategory;
                       return GestureDetector(
                         onTap: () => searchNotifier.setCategory(cat),
                         child: AnimatedContainer(
                           duration: const Duration(milliseconds: 200),
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 9),
+                            horizontal: 16,
+                            vertical: 9,
+                          ),
                           decoration: BoxDecoration(
                             color: isSelected
                                 ? AppColors.primary
@@ -122,11 +131,12 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                             boxShadow: isSelected
                                 ? [
                                     BoxShadow(
-                                      color: AppColors.primary
-                                          .withValues(alpha: 0.25),
+                                      color: AppColors.primary.withValues(
+                                        alpha: 0.25,
+                                      ),
                                       blurRadius: 10,
                                       offset: const Offset(0, 4),
-                                    )
+                                    ),
                                   ]
                                 : [],
                           ),
@@ -177,8 +187,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                       child: ListView.separated(
                         scrollDirection: Axis.horizontal,
                         itemCount: allClubs.length,
-                        separatorBuilder: (_, _) =>
-                            const SizedBox(width: 12),
+                        separatorBuilder: (_, _) => const SizedBox(width: 12),
                         itemBuilder: (context, i) => _ClubCard(
                           club: allClubs[i],
                           onTap: () =>
@@ -203,14 +212,15 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                     iconColor: AppColors.primary,
                   ),
                   const SizedBox(height: 12),
-                  ...filteredClubs.map((c) => Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
-                        child: _ClubSearchCard(
-                          club: c,
-                          onTap: () =>
-                              context.push('/student/club/${c.id}'),
-                        ),
-                      )),
+                  ...filteredClubs.map(
+                    (c) => Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: _ClubSearchCard(
+                        club: c,
+                        onTap: () => context.push('/student/club/${c.id}'),
+                      ),
+                    ),
+                  ),
                 ]),
               ),
             ),
@@ -229,10 +239,12 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                 if (filteredEvents.isEmpty)
                   _EmptyState(query: searchState.query)
                 else
-                  ...filteredEvents.map((e) => Padding(
-                        padding: const EdgeInsets.only(bottom: 14),
-                        child: EventCard(event: e, compact: true),
-                      )),
+                  ...filteredEvents.map(
+                    (e) => Padding(
+                      padding: const EdgeInsets.only(bottom: 14),
+                      child: EventCard(event: e, compact: true),
+                    ),
+                  ),
                 const SizedBox(height: 16),
               ]),
             ),
@@ -243,13 +255,13 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   }
 
   IconData _categoryIcon(String cat) => switch (cat) {
-        'Technical' => Icons.code_rounded,
-        'Cultural' => Icons.palette_rounded,
-        'Sports' => Icons.sports_basketball_rounded,
-        'Workshop' => Icons.build_rounded,
-        'Seminar' => Icons.mic_rounded,
-        _ => Icons.grid_view_rounded,
-      };
+    'Technical' => Icons.code_rounded,
+    'Cultural' => Icons.palette_rounded,
+    'Sports' => Icons.sports_basketball_rounded,
+    'Workshop' => Icons.build_rounded,
+    'Seminar' => Icons.mic_rounded,
+    _ => Icons.grid_view_rounded,
+  };
 }
 
 // ── Result Header (count badge) ───────────────────────────────────────────────
@@ -258,28 +270,30 @@ class _ResultHeader extends StatelessWidget {
   final String label;
   final int count;
   final Color iconColor;
-  const _ResultHeader(
-      {required this.label, required this.count, required this.iconColor});
+  const _ResultHeader({
+    required this.label,
+    required this.count,
+    required this.iconColor,
+  });
 
   @override
   Widget build(BuildContext context) => Row(
-        children: [
-          Text(label, style: AppTextStyles.headingM),
-          const SizedBox(width: 8),
-          Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-            decoration: BoxDecoration(
-              color: iconColor.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Text(
-              '$count',
-              style: AppTextStyles.labelS.copyWith(color: iconColor),
-            ),
-          ),
-        ],
-      );
+    children: [
+      Text(label, style: AppTextStyles.headingM),
+      const SizedBox(width: 8),
+      Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+        decoration: BoxDecoration(
+          color: iconColor.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Text(
+          '$count',
+          style: AppTextStyles.labelS.copyWith(color: iconColor),
+        ),
+      ),
+    ],
+  );
 }
 
 // ── Club Search Card (appears in search results) ──────────────────────────────
@@ -290,13 +304,13 @@ class _ClubSearchCard extends StatelessWidget {
   const _ClubSearchCard({required this.club, required this.onTap});
 
   Color get _catColor => switch (club.category) {
-        'Technical' => const Color(0xFF1E40AF),
-        'Cultural' => const Color(0xFF7C3AED),
-        'Sports' => const Color(0xFF059669),
-        'Workshop' => const Color(0xFFD97706),
-        'Seminar' => const Color(0xFFDB2777),
-        _ => AppColors.primary,
-      };
+    'Technical' => const Color(0xFF1E40AF),
+    'Cultural' => const Color(0xFF7C3AED),
+    'Sports' => const Color(0xFF059669),
+    'Workshop' => const Color(0xFFD97706),
+    'Seminar' => const Color(0xFFDB2777),
+    _ => AppColors.primary,
+  };
 
   @override
   Widget build(BuildContext context) {
@@ -310,9 +324,10 @@ class _ClubSearchCard extends StatelessWidget {
           border: Border(left: BorderSide(color: _catColor, width: 4)),
           boxShadow: const [
             BoxShadow(
-                color: AppColors.cardShadow,
-                blurRadius: 8,
-                offset: Offset(0, 2))
+              color: AppColors.cardShadow,
+              blurRadius: 8,
+              offset: Offset(0, 2),
+            ),
           ],
         ),
         child: Row(
@@ -341,15 +356,19 @@ class _ClubSearchCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(club.name,
-                      style: AppTextStyles.labelM,
-                      overflow: TextOverflow.ellipsis),
+                  Text(
+                    club.name,
+                    style: AppTextStyles.labelM,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                   const SizedBox(height: 4),
                   Row(
                     children: [
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 7, vertical: 3),
+                          horizontal: 7,
+                          vertical: 3,
+                        ),
                         decoration: BoxDecoration(
                           color: _catColor.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(8),
@@ -357,14 +376,18 @@ class _ClubSearchCard extends StatelessWidget {
                         child: Text(
                           club.category,
                           style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w700,
-                              color: _catColor),
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            color: _catColor,
+                          ),
                         ),
                       ),
                       const SizedBox(width: 8),
-                      const Icon(Icons.groups_rounded,
-                          size: 12, color: AppColors.textMuted),
+                      const Icon(
+                        Icons.groups_rounded,
+                        size: 12,
+                        color: AppColors.textMuted,
+                      ),
                       const SizedBox(width: 3),
                       Text(
                         '${club.memberCount} members',
@@ -375,8 +398,11 @@ class _ClubSearchCard extends StatelessWidget {
                 ],
               ),
             ),
-            const Icon(Icons.chevron_right_rounded,
-                color: AppColors.textMuted, size: 20),
+            const Icon(
+              Icons.chevron_right_rounded,
+              color: AppColors.textMuted,
+              size: 20,
+            ),
           ],
         ),
       ),
@@ -392,13 +418,13 @@ class _ClubCard extends StatelessWidget {
   const _ClubCard({required this.club, required this.onTap});
 
   Color get _catColor => switch (club.category) {
-        'Technical' => const Color(0xFF1E40AF),
-        'Cultural' => const Color(0xFF7C3AED),
-        'Sports' => const Color(0xFF059669),
-        'Workshop' => const Color(0xFFD97706),
-        'Seminar' => const Color(0xFFDB2777),
-        _ => AppColors.primary,
-      };
+    'Technical' => const Color(0xFF1E40AF),
+    'Cultural' => const Color(0xFF7C3AED),
+    'Sports' => const Color(0xFF059669),
+    'Workshop' => const Color(0xFFD97706),
+    'Seminar' => const Color(0xFFDB2777),
+    _ => AppColors.primary,
+  };
 
   @override
   Widget build(BuildContext context) {
@@ -435,16 +461,19 @@ class _ClubCard extends StatelessWidget {
                     child: Text(
                       club.initials,
                       style: TextStyle(
-                          color: _catColor,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w800),
+                        color: _catColor,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
                   ),
                 ),
                 const Spacer(),
                 Container(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 6, vertical: 3),
+                    horizontal: 6,
+                    vertical: 3,
+                  ),
                   decoration: BoxDecoration(
                     color: _catColor.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
@@ -452,9 +481,10 @@ class _ClubCard extends StatelessWidget {
                   child: Text(
                     club.category,
                     style: TextStyle(
-                        fontSize: 9,
-                        fontWeight: FontWeight.w700,
-                        color: _catColor),
+                      fontSize: 9,
+                      fontWeight: FontWeight.w700,
+                      color: _catColor,
+                    ),
                   ),
                 ),
               ],
@@ -467,10 +497,7 @@ class _ClubCard extends StatelessWidget {
               style: AppTextStyles.labelM.copyWith(fontSize: 13),
             ),
             const SizedBox(height: 4),
-            Text(
-              '${club.eventCount} events',
-              style: AppTextStyles.caption,
-            ),
+            Text('${club.eventCount} events', style: AppTextStyles.caption),
           ],
         ),
       ),
@@ -498,8 +525,11 @@ class _EmptyState extends StatelessWidget {
                 color: AppColors.primarySurface,
                 borderRadius: BorderRadius.circular(24),
               ),
-              child: const Icon(Icons.search_off_rounded,
-                  size: 40, color: AppColors.primaryMuted),
+              child: const Icon(
+                Icons.search_off_rounded,
+                size: 40,
+                color: AppColors.primaryMuted,
+              ),
             ),
             const SizedBox(height: 16),
             Text(

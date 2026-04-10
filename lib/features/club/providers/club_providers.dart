@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/models.dart';
 import '../../../core/models/message_model.dart';
 import '../../../core/providers/student_providers.dart'; // To get chatRepositoryProvider
-
+import '../../../core/repositories/notification_repository.dart';
+import '../../../core/repositories/event_repository.dart';
+import '../models/registration_field_model.dart';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // CLUB EVENTS PROVIDER
@@ -39,10 +41,11 @@ final clubStatsProvider = Provider<ClubStats>((ref) {
 
 // clubDiscussionStreamProvider streams messages from a particular event
 // Since ClubChat represents organizers viewing the same chat room, we reuse the core ChatRepository stream
-final clubDiscussionStreamProvider = StreamProvider.family<List<MessageModel>, String>((ref, eventId) {
-  final repo = ref.watch(chatRepositoryProvider);
-  return repo.streamEventMessages(eventId);
-});
+final clubDiscussionStreamProvider =
+    StreamProvider.family<List<MessageModel>, String>((ref, eventId) {
+      final repo = ref.watch(chatRepositoryProvider);
+      return repo.streamEventMessages(eventId);
+    });
 
 // Helper for clubs to send messages
 class ClubDiscussionHelper {
@@ -73,7 +76,9 @@ class ClubDiscussionHelper {
   }
 }
 
-final clubDiscussionHelperProvider = Provider<ClubDiscussionHelper>((ref) => ClubDiscussionHelper(ref));
+final clubDiscussionHelperProvider = Provider<ClubDiscussionHelper>(
+  (ref) => ClubDiscussionHelper(ref),
+);
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // CREATE EVENT FORM PROVIDER
@@ -87,6 +92,7 @@ class CreateEventState {
   final String date;
   final String time;
   final File? posterFile;
+  final List<RegistrationFieldModel> formFields;
 
   const CreateEventState({
     this.title = '',
@@ -96,6 +102,7 @@ class CreateEventState {
     this.date = '',
     this.time = '',
     this.posterFile,
+    this.formFields = const [],
   });
 
   bool get isValid =>
@@ -114,16 +121,17 @@ class CreateEventState {
     String? date,
     String? time,
     File? posterFile,
-  }) =>
-      CreateEventState(
-        title: title ?? this.title,
-        category: category ?? this.category,
-        venue: venue ?? this.venue,
-        description: description ?? this.description,
-        date: date ?? this.date,
-        time: time ?? this.time,
-        posterFile: posterFile ?? this.posterFile,
-      );
+    List<RegistrationFieldModel>? formFields,
+  }) => CreateEventState(
+    title: title ?? this.title,
+    category: category ?? this.category,
+    venue: venue ?? this.venue,
+    description: description ?? this.description,
+    date: date ?? this.date,
+    time: time ?? this.time,
+    posterFile: posterFile ?? this.posterFile,
+    formFields: formFields ?? this.formFields,
+  );
 }
 
 class CreateEventNotifier extends Notifier<CreateEventState> {
@@ -137,12 +145,46 @@ class CreateEventNotifier extends Notifier<CreateEventState> {
   void setDate(String v) => state = state.copyWith(date: v);
   void setTime(String v) => state = state.copyWith(time: v);
   void setPoster(File? file) => state = state.copyWith(posterFile: file);
+
+  void addFormField({FormFieldType? type}) {
+    state = state.copyWith(
+      formFields: [
+        ...state.formFields,
+        RegistrationFieldModel.create().copyWith(type: type),
+      ],
+    );
+  }
+
+  void updateFormField(String id, RegistrationFieldModel updated) {
+    state = state.copyWith(
+      formFields: state.formFields.map((f) => f.id == id ? updated : f).toList(),
+    );
+  }
+
+  void removeFormField(String id) {
+    state = state.copyWith(
+      formFields: state.formFields.where((f) => f.id != id).toList(),
+    );
+  }
+
+  void reorderFormFields(int oldIndex, int newIndex) {
+    final fields = List<RegistrationFieldModel>.from(state.formFields);
+    final item = fields.removeAt(oldIndex);
+    fields.insert(newIndex > oldIndex ? newIndex - 1 : newIndex, item);
+    state = state.copyWith(formFields: fields);
+  }
+
+  void setFormFields(List<RegistrationFieldModel> fields) {
+    state = state.copyWith(formFields: fields);
+  }
+
   void reset() => state = const CreateEventState();
 }
 
 final createEventProvider =
     NotifierProvider<CreateEventNotifier, CreateEventState>(
-        CreateEventNotifier.new);
+      CreateEventNotifier.new,
+    );
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // MANAGE EVENTS TAB FILTER
@@ -185,22 +227,27 @@ class ClubProfileModel {
     String? email,
     String? founded,
     String? location,
-  }) =>
-      ClubProfileModel(
-        name: name ?? this.name,
-        tagline: tagline ?? this.tagline,
-        description: description ?? this.description,
-        category: category ?? this.category,
-        facultyMentor: facultyMentor ?? this.facultyMentor,
-        email: email ?? this.email,
-        founded: founded ?? this.founded,
-        location: location ?? this.location,
-      );
+  }) => ClubProfileModel(
+    name: name ?? this.name,
+    tagline: tagline ?? this.tagline,
+    description: description ?? this.description,
+    category: category ?? this.category,
+    facultyMentor: facultyMentor ?? this.facultyMentor,
+    email: email ?? this.email,
+    founded: founded ?? this.founded,
+    location: location ?? this.location,
+  );
 
   /// Returns short initials (up to 2 chars) for the logo placeholder.
   String get initials {
-    final words = name.trim().split(' ');
-    if (words.length == 1) return words[0].substring(0, 2).toUpperCase();
+    if (name.trim().isEmpty) return 'CL';
+    final words = name.trim().split(' ').where((w) => w.isNotEmpty).toList();
+    if (words.isEmpty) return 'CL';
+    if (words.length == 1) {
+      return words[0].length >= 2
+          ? words[0].substring(0, 2).toUpperCase()
+          : words[0].toUpperCase();
+    }
     return '${words[0][0]}${words[1][0]}'.toUpperCase();
   }
 }
@@ -231,18 +278,40 @@ class ClubProfileNotifier extends Notifier<ClubProfileModel> {
     if (user.id.isEmpty) return;
 
     final repo = ref.read(userRepositoryProvider);
+    final notifRepo = ref.read(_clubNotifRepoProvider);
     final club = await repo.getClub(user.id);
     if (club != null) {
       state = ClubProfileModel(
         name: club.name.isNotEmpty ? club.name : state.name,
         tagline: club.tagline.isNotEmpty ? club.tagline : state.tagline,
-        description: club.description.isNotEmpty ? club.description : state.description,
+        description: club.description.isNotEmpty
+            ? club.description
+            : state.description,
         category: club.category.isNotEmpty ? club.category : state.category,
-        facultyMentor: club.facultyMentor.isNotEmpty ? club.facultyMentor : state.facultyMentor,
+        facultyMentor: club.facultyMentor.isNotEmpty
+            ? club.facultyMentor
+            : state.facultyMentor,
         email: club.email.isNotEmpty ? club.email : state.email,
         founded: club.founded.isNotEmpty ? club.founded : state.founded,
         location: club.location.isNotEmpty ? club.location : state.location,
       );
+
+      // Check if club profile is incomplete after loading
+      final incomplete =
+          state.tagline.isEmpty ||
+          state.description.isEmpty ||
+          state.facultyMentor.isEmpty ||
+          state.location.isEmpty;
+
+      if (incomplete) {
+        notifRepo.ensureProfileIncompleteNotification(
+          userId: user.id,
+          role: 'club',
+        );
+      } else {
+        // If it was complete, ensure any old Firebase notification is deleted
+        notifRepo.dismissProfileIncompleteNotification(user.id);
+      }
     }
   }
 
@@ -260,5 +329,22 @@ class ClubProfileNotifier extends Notifier<ClubProfileModel> {
 
 final clubProfileProvider =
     NotifierProvider<ClubProfileNotifier, ClubProfileModel>(
-        ClubProfileNotifier.new);
+      ClubProfileNotifier.new,
+    );
 
+// Internal helper – avoids circular dependency
+final _clubNotifRepoProvider = Provider<NotificationRepository>(
+  (ref) => NotificationRepository(),
+);
+
+/// True when the club's profile is not fully filled in.
+/// Watches live so it auto-updates when the profile is saved.
+final isClubProfileIncompleteProvider = Provider<bool>((ref) {
+  final profile = ref.watch(clubProfileProvider);
+  final user = ref.watch(currentUserProvider);
+  if (user.id.isEmpty || user.role != 'club') return false;
+  return profile.tagline.isEmpty ||
+      profile.description.isEmpty ||
+      profile.facultyMentor.isEmpty ||
+      profile.location.isEmpty;
+});

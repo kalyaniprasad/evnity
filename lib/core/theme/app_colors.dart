@@ -55,11 +55,11 @@ abstract class AppColors {
   static const shadowMedium = Color(0x14000000);
 
   // ── Category Colors ──────────────────────────────────────────────────────
-  static const categoryTechnical  = Color(0xFF1E40AF); // = primary
-  static const categoryCultural   = Color(0xFF7C3AED);
-  static const categorySports     = Color(0xFF16A34A); // = success
-  static const categoryWorkshop   = Color(0xFFD97706); // = warning
-  static const categorySeminar    = Color(0xFFDB2777);
+  static const categoryTechnical = Color(0xFF1E40AF); // = primary
+  static const categoryCultural = Color(0xFF7C3AED);
+  static const categorySports = Color(0xFF16A34A); // = success
+  static const categoryWorkshop = Color(0xFFD97706); // = warning
+  static const categorySeminar = Color(0xFFDB2777);
   static const categoryCulturalBg = Color(0xFFF5F3FF);
-  static const categorySeminarBg  = Color(0xFFFDF2F8);
+  static const categorySeminarBg = Color(0xFFFDF2F8);
 }

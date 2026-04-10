@@ -59,8 +59,9 @@ class RoleCard extends StatelessWidget {
               width: 54,
               height: 54,
               decoration: BoxDecoration(
-                color:
-                    isSelected ? AppColors.primary : AppColors.primarySurface,
+                color: isSelected
+                    ? AppColors.primary
+                    : AppColors.primarySurface,
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Icon(
@@ -98,8 +99,7 @@ class RoleCard extends StatelessWidget {
               width: 22,
               height: 22,
               decoration: BoxDecoration(
-                color:
-                    isSelected ? AppColors.primary : AppColors.surfaceAlt,
+                color: isSelected ? AppColors.primary : AppColors.surfaceAlt,
                 shape: BoxShape.circle,
               ),
               child: Icon(

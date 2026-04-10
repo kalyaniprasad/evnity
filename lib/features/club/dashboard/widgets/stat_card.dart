@@ -45,10 +45,7 @@ class StatCard extends StatelessWidget {
             child: Icon(icon, size: 19, color: iconColor),
           ),
           const SizedBox(height: 12),
-          Text(
-            value,
-            style: AppTextStyles.headingXL,
-          ),
+          Text(value, style: AppTextStyles.headingXL),
           const SizedBox(height: 2),
           Text(
             label,

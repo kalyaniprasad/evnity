@@ -20,7 +20,8 @@ class _StudentProfileEditScreenState
   late final TextEditingController _fullNameCtrl;
   late final TextEditingController _branchCtrl;
   late final TextEditingController _bioCtrl;
-  String _selectedYear = 'Third Year';
+  String? _selectedYear;
+  String? _selectedDept;
   final _formKey = GlobalKey<FormState>();
   bool _saving = false;
 
@@ -31,15 +32,38 @@ class _StudentProfileEditScreenState
     'Fourth Year',
   ];
 
+  static const _departments = [
+    'Computer Engineering',
+    'Computer Engineering (RL)',
+    'Information Technology',
+    'Mechanical Engineering',
+    'Electronics and Telecommunication Engineering',
+    'Civil Engineering',
+    'AI-ML',
+    'Other',
+  ];
+
   @override
   void initState() {
     super.initState();
     final edit = ref.read(studentProfileEditProvider);
     _aliasCtrl = TextEditingController(text: edit.aliasName);
     _fullNameCtrl = TextEditingController(text: edit.fullName);
-    _branchCtrl = TextEditingController(text: edit.branch);
+
+    // Determine initial department
+    if (edit.branch.isEmpty) {
+      _selectedDept = null;
+      _branchCtrl = TextEditingController();
+    } else if (_departments.contains(edit.branch)) {
+      _selectedDept = edit.branch;
+      _branchCtrl = TextEditingController();
+    } else {
+      _selectedDept = 'Other';
+      _branchCtrl = TextEditingController(text: edit.branch);
+    }
+
     _bioCtrl = TextEditingController(text: edit.bio);
-    _selectedYear = edit.year;
+    _selectedYear = edit.year.isEmpty ? null : edit.year;
   }
 
   @override
@@ -57,10 +81,14 @@ class _StudentProfileEditScreenState
 
     // Update the edit notifier
     final notifier = ref.read(studentProfileEditProvider.notifier);
+    final branchValue = _selectedDept == 'Other'
+        ? _branchCtrl.text.trim()
+        : (_selectedDept ?? '');
+
     notifier.setAlias(_aliasCtrl.text.trim());
     notifier.setFullName(_fullNameCtrl.text.trim());
-    notifier.setBranch(_branchCtrl.text.trim());
-    notifier.setYear(_selectedYear);
+    notifier.setBranch(branchValue);
+    notifier.setYear(_selectedYear ?? '');
     notifier.setBio(_bioCtrl.text.trim());
 
     try {
@@ -68,14 +96,20 @@ class _StudentProfileEditScreenState
       await notifier.save();
 
       if (mounted) {
-        showAppSnackbar(context, 'Profile updated successfully!',
-            type: SnackbarType.success);
+        showAppSnackbar(
+          context,
+          'Profile updated successfully!',
+          type: SnackbarType.success,
+        );
         Navigator.pop(context);
       }
     } catch (e) {
       if (mounted) {
-        showAppSnackbar(context, 'Failed to update profile: $e',
-            type: SnackbarType.error);
+        showAppSnackbar(
+          context,
+          'Failed to update profile: $e',
+          type: SnackbarType.error,
+        );
       }
     } finally {
       if (mounted) {
@@ -107,10 +141,14 @@ class _StudentProfileEditScreenState
                 ? const SizedBox(
                     width: 18,
                     height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2))
-                : Text('Save',
-                    style: AppTextStyles.labelM
-                        .copyWith(color: AppColors.primary)),
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : Text(
+                    'Save',
+                    style: AppTextStyles.labelM.copyWith(
+                      color: AppColors.primary,
+                    ),
+                  ),
           ),
           const SizedBox(width: 8),
         ],
@@ -144,9 +182,10 @@ class _StudentProfileEditScreenState
                               ? _aliasCtrl.text[0].toUpperCase()
                               : '?',
                           style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 38,
-                              fontWeight: FontWeight.w800),
+                            color: Colors.white,
+                            fontSize: 38,
+                            fontWeight: FontWeight.w800,
+                          ),
                         ),
                       ),
                     ),
@@ -159,11 +198,13 @@ class _StudentProfileEditScreenState
                         decoration: BoxDecoration(
                           color: AppColors.primary,
                           shape: BoxShape.circle,
-                          border:
-                              Border.all(color: AppColors.white, width: 2),
+                          border: Border.all(color: AppColors.white, width: 2),
                         ),
-                        child: const Icon(Icons.camera_alt_outlined,
-                            size: 14, color: Colors.white),
+                        child: const Icon(
+                          Icons.camera_alt_outlined,
+                          size: 14,
+                          color: Colors.white,
+                        ),
                       ),
                     ),
                   ],
@@ -171,8 +212,10 @@ class _StudentProfileEditScreenState
               ),
               const SizedBox(height: 6),
               Center(
-                child: Text('Tap to change photo',
-                    style: AppTextStyles.caption),
+                child: Text(
+                  'Tap to change photo',
+                  style: AppTextStyles.caption,
+                ),
               ),
               const SizedBox(height: 28),
 
@@ -186,6 +229,14 @@ class _StudentProfileEditScreenState
                   validator: (v) => v == null || v.trim().isEmpty
                       ? 'Alias name is required'
                       : null,
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Tip: This name will be used to display or connect with others instead of your real name. Choose wisely, unless you want to be known as this alias name forever. 🙄',
+                  style: AppTextStyles.caption.copyWith(
+                    color: AppColors.textSecondary.withOpacity(0.8),
+                    fontStyle: FontStyle.italic,
+                  ),
                 ),
                 const SizedBox(height: 12),
                 _EditField(
@@ -209,15 +260,30 @@ class _StudentProfileEditScreenState
               const SizedBox(height: 20),
 
               _FormSection('Academic Info', [
-                _EditField(
-                  label: 'Branch / Department',
-                  hint: 'e.g. Computer Science',
-                  controller: _branchCtrl,
-                  icon: Icons.school_outlined,
-                  validator: (v) => v == null || v.trim().isEmpty
-                      ? 'Branch is required'
-                      : null,
+                _DepartmentDropdown(
+                  selectedDept: _selectedDept,
+                  departments: _departments,
+                  onChanged: (v) {
+                    setState(() {
+                      _selectedDept = v;
+                      if (v != 'Other') {
+                        _branchCtrl.clear();
+                      }
+                    });
+                  },
                 ),
+                if (_selectedDept == 'Other') ...[
+                  const SizedBox(height: 12),
+                  _EditField(
+                    label: 'Specify Your Branch',
+                    hint: 'e.g. Electrical Engineering',
+                    controller: _branchCtrl,
+                    icon: Icons.edit_outlined,
+                    validator: (v) => v == null || v.trim().isEmpty
+                        ? 'Branch is required'
+                        : null,
+                  ),
+                ],
                 const SizedBox(height: 12),
                 _YearDropdown(
                   selectedYear: _selectedYear,
@@ -249,17 +315,25 @@ class _StudentProfileEditScreenState
                     foregroundColor: Colors.white,
                     elevation: 0,
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14)),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
                   ),
                   child: _saving
                       ? const SizedBox(
                           width: 20,
                           height: 20,
                           child: CircularProgressIndicator(
-                              strokeWidth: 2, color: Colors.white))
-                      : const Text('Save Changes',
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Text(
+                          'Save Changes',
                           style: TextStyle(
-                              fontSize: 16, fontWeight: FontWeight.w700)),
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
                 ),
               ),
               const SizedBox(height: 20),
@@ -280,31 +354,34 @@ class _FormSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(title,
-              style: AppTextStyles.labelM.copyWith(color: AppColors.primary)),
-          const SizedBox(height: 10),
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: AppColors.white,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppColors.divider),
-              boxShadow: const [
-                BoxShadow(
-                    color: AppColors.cardShadow,
-                    blurRadius: 8,
-                    offset: Offset(0, 2))
-              ],
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(
+        title,
+        style: AppTextStyles.labelM.copyWith(color: AppColors.primary),
+      ),
+      const SizedBox(height: 10),
+      Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.divider),
+          boxShadow: const [
+            BoxShadow(
+              color: AppColors.cardShadow,
+              blurRadius: 8,
+              offset: Offset(0, 2),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: children,
-            ),
-          ),
-        ],
-      );
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: children,
+        ),
+      ),
+    ],
+  );
 }
 
 // ── Editable Field ────────────────────────────────────────────────────────────
@@ -330,57 +407,56 @@ class _EditField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label, style: AppTextStyles.caption),
-          const SizedBox(height: 6),
-          TextFormField(
-            controller: controller,
-            readOnly: readOnly,
-            maxLines: maxLines,
-            validator: validator,
-            style: AppTextStyles.labelM.copyWith(fontSize: 14),
-            decoration: InputDecoration(
-              hintText: hint,
-              hintStyle: AppTextStyles.caption,
-              prefixIcon: Icon(icon,
-                  size: 18,
-                  color: readOnly
-                      ? AppColors.textDisabled
-                      : AppColors.primary),
-              filled: true,
-              fillColor: readOnly
-                  ? AppColors.surfaceAlt
-                  : AppColors.background,
-              contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 14, vertical: 13),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: AppColors.divider),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: AppColors.divider),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide:
-                    const BorderSide(color: AppColors.primary, width: 1.5),
-              ),
-              errorBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: AppColors.error),
-              ),
-            ),
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(label, style: AppTextStyles.caption),
+      const SizedBox(height: 6),
+      TextFormField(
+        controller: controller,
+        readOnly: readOnly,
+        maxLines: maxLines,
+        validator: validator,
+        style: AppTextStyles.labelM.copyWith(fontSize: 14),
+        decoration: InputDecoration(
+          hintText: hint,
+          hintStyle: AppTextStyles.caption,
+          prefixIcon: Icon(
+            icon,
+            size: 18,
+            color: readOnly ? AppColors.textDisabled : AppColors.primary,
           ),
-        ],
-      );
+          filled: true,
+          fillColor: readOnly ? AppColors.surfaceAlt : AppColors.background,
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 14,
+            vertical: 13,
+          ),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: AppColors.divider),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: AppColors.divider),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+          ),
+          errorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: AppColors.error),
+          ),
+        ),
+      ),
+    ],
+  );
 }
 
 // ── Year Dropdown ─────────────────────────────────────────────────────────────
 
 class _YearDropdown extends StatelessWidget {
-  final String selectedYear;
+  final String? selectedYear;
   final List<String> years;
   final ValueChanged<String?> onChanged;
 
@@ -392,39 +468,117 @@ class _YearDropdown extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Academic Year', style: AppTextStyles.caption),
-          const SizedBox(height: 6),
-          DropdownButtonFormField<String>(
-            initialValue: selectedYear,
-            onChanged: onChanged,
-            items: years
-                .map((y) => DropdownMenuItem(value: y, child: Text(y)))
-                .toList(),
-            style: AppTextStyles.labelM.copyWith(fontSize: 14),
-            decoration: InputDecoration(
-              prefixIcon: const Icon(Icons.calendar_month_outlined,
-                  size: 18, color: AppColors.primary),
-              filled: true,
-              fillColor: AppColors.background,
-              contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: AppColors.divider),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: AppColors.divider),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide:
-                    const BorderSide(color: AppColors.primary, width: 1.5),
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text('Academic Year', style: AppTextStyles.caption),
+      const SizedBox(height: 6),
+      DropdownButtonFormField<String>(
+        initialValue: selectedYear,
+        onChanged: onChanged,
+        hint: Text('Select Year', style: AppTextStyles.caption),
+        items: years
+            .map((y) => DropdownMenuItem(value: y, child: Text(y)))
+            .toList(),
+        validator: (v) => v == null || v.isEmpty ? 'Year is required' : null,
+        style: AppTextStyles.labelM.copyWith(fontSize: 14),
+        decoration: InputDecoration(
+          prefixIcon: const Icon(
+            Icons.calendar_month_outlined,
+            size: 18,
+            color: AppColors.primary,
+          ),
+          filled: true,
+          fillColor: AppColors.background,
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 14,
+            vertical: 13,
+          ),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: AppColors.divider),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: AppColors.divider),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+          ),
+        ),
+      ),
+    ],
+  );
+}
+
+// ── Department Dropdown ─────────────────────────────────────────────────────────────
+
+class _DepartmentDropdown extends StatelessWidget {
+  final String? selectedDept;
+  final List<String> departments;
+  final ValueChanged<String?> onChanged;
+
+  const _DepartmentDropdown({
+    required this.selectedDept,
+    required this.departments,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text('Branch / Department', style: AppTextStyles.caption),
+      const SizedBox(height: 6),
+      LayoutBuilder(
+        builder: (context, constraints) => DropdownMenu<String>(
+          initialSelection: selectedDept,
+          onSelected: onChanged,
+          width: constraints.maxWidth,
+          hintText: 'Select Department',
+          menuHeight: 300,
+          textStyle: AppTextStyles.labelM.copyWith(fontSize: 14),
+          leadingIcon: const Icon(
+            Icons.school_outlined,
+            size: 18,
+            color: AppColors.primary,
+          ),
+          inputDecorationTheme: InputDecorationTheme(
+            filled: true,
+            fillColor: AppColors.background,
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 14,
+              vertical: 13,
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: AppColors.divider),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: AppColors.divider),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(
+                color: AppColors.primary,
+                width: 1.5,
               ),
             ),
           ),
-        ],
-      );
+          dropdownMenuEntries: departments
+              .map(
+                (d) => DropdownMenuEntry(
+                  value: d,
+                  label: d,
+                  style: MenuItemButton.styleFrom(
+                    textStyle: AppTextStyles.labelM.copyWith(fontSize: 14),
+                  ),
+                ),
+              )
+              .toList(),
+        ),
+      ),
+    ],
+  );
 }

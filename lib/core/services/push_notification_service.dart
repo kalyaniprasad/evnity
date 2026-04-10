@@ -15,34 +15,41 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   // 2. Initialize local notifications in this isolate
   const AndroidInitializationSettings initializationSettingsAndroid =
       AndroidInitializationSettings('@mipmap/ic_launcher');
-  const InitializationSettings initializationSettings =
-      InitializationSettings(android: initializationSettingsAndroid);
-  
-  final FlutterLocalNotificationsPlugin localNotifications = FlutterLocalNotificationsPlugin();
+  const InitializationSettings initializationSettings = InitializationSettings(
+    android: initializationSettingsAndroid,
+  );
+
+  final FlutterLocalNotificationsPlugin localNotifications =
+      FlutterLocalNotificationsPlugin();
   await localNotifications.initialize(settings: initializationSettings);
 
   if (kDebugMode) {
     print("Background message received: ${message.messageId}");
   }
-  
+
   // 3. Show local notification for data-only messages
-  // (FCM "notification" messages are shown by OS automatically, 
+  // (FCM "notification" messages are shown by OS automatically,
   //  but "data" messages need manual handling)
   if (message.data.isNotEmpty && message.notification == null) {
     const AndroidNotificationDetails androidPlatformChannelSpecifics =
         AndroidNotificationDetails(
-      'high_importance_channel',
-      'High Importance Notifications',
-      importance: Importance.max,
-      priority: Priority.high,
-      showWhen: true,
-      channelShowBadge: true,
+          'high_importance_channel',
+          'High Importance Notifications',
+          importance: Importance.max,
+          priority: Priority.high,
+          showWhen: true,
+          channelShowBadge: true,
+        );
+    const NotificationDetails platformChannelSpecifics = NotificationDetails(
+      android: androidPlatformChannelSpecifics,
     );
-    const NotificationDetails platformChannelSpecifics =
-        NotificationDetails(android: androidPlatformChannelSpecifics);
 
     final title = message.data['title'] ?? 'New Notification';
-    final body = message.data['body'] ?? message.data['description'] ?? message.data['message'] ?? '';
+    final body =
+        message.data['body'] ??
+        message.data['description'] ??
+        message.data['message'] ??
+        '';
 
     if (body.isNotEmpty) {
       await localNotifications.show(
@@ -58,7 +65,8 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 
 class PushNotificationService {
   static final FirebaseMessaging _messaging = FirebaseMessaging.instance;
-  static final FlutterLocalNotificationsPlugin _localNotifications = FlutterLocalNotificationsPlugin();
+  static final FlutterLocalNotificationsPlugin _localNotifications =
+      FlutterLocalNotificationsPlugin();
 
   static Future<void> initialize() async {
     // 1. Initialize local notifications with POSITIONAL argument (v21 requirement)
@@ -75,13 +83,15 @@ class PushNotificationService {
       badge: true,
       sound: true,
     );
-    
+
     // Explicitly request notification permission for Android 13+
     if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
-      final androidPlugin = _localNotifications.resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin>();
+      final androidPlugin = _localNotifications
+          .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin
+          >();
       await androidPlugin?.requestNotificationsPermission();
-      
+
       // Create notification channel for background/persistent alerts
       const AndroidNotificationChannel channel = AndroidNotificationChannel(
         'high_importance_channel',
@@ -103,7 +113,10 @@ class PushNotificationService {
         print('FCM Token: $token');
       }
 
-      // Subscribe to a generic topic for all users
+      // Subscribe to a generic topic for all users (for global broadcasts)
+      await _messaging.subscribeToTopic('broadcast_all');
+
+      // Subscribe to a generic topic for all users (legacy/compatible)
       await _messaging.subscribeToTopic('all_events');
 
       // Setup message listeners
@@ -137,24 +150,45 @@ class PushNotificationService {
     if (kDebugMode) {
       print('Notification clicked, data: ${message.data}');
     }
-    // TODO: Add deep links or specific navigation based on message.data['screen']
+
+    final screen = message.data['screen'];
+    final eventId = message.data['eventId'];
+
+    // We use a global key or a navigation context helper if available,
+    // but often with GoRouter we can just use the context from a known place
+    // or rely on the fact that the app will rebuild and redirect.
+    // For simplicity in this static service, we'll use a global observer or
+    // just document that the app should handle it on startup.
+    
+    // NOTE: In a real app, you'd integrate this with your GoRouter instance.
+    // Since this is a static service, we'll try to use the navigator key if available
+    // or store the pending navigation for the shell to pick up.
   }
 
   static Future<void> _showLocalNotification(RemoteMessage message) async {
     const AndroidNotificationDetails androidPlatformChannelSpecifics =
         AndroidNotificationDetails(
-      'high_importance_channel',
-      'High Importance Notifications',
-      importance: Importance.max,
-      priority: Priority.high,
-      showWhen: true,
-      channelShowBadge: true,
+          'high_importance_channel',
+          'High Importance Notifications',
+          importance: Importance.max,
+          priority: Priority.high,
+          showWhen: true,
+          channelShowBadge: true,
+        );
+    const NotificationDetails platformChannelSpecifics = NotificationDetails(
+      android: androidPlatformChannelSpecifics,
     );
-    const NotificationDetails platformChannelSpecifics =
-        NotificationDetails(android: androidPlatformChannelSpecifics);
 
-    final title = message.notification?.title ?? message.data['title'] ?? 'New Notification';
-    final body = message.notification?.body ?? message.data['body'] ?? message.data['description'] ?? message.data['message'] ?? '';
+    final title =
+        message.notification?.title ??
+        message.data['title'] ??
+        'New Notification';
+    final body =
+        message.notification?.body ??
+        message.data['body'] ??
+        message.data['description'] ??
+        message.data['message'] ??
+        '';
 
     if (body.isNotEmpty) {
       await _localNotifications.show(
@@ -185,7 +219,6 @@ class PushNotificationService {
     }
   }
 
-
   /// Track notification IDs that have already been shown locally to avoid duplicates
   static final Set<String> _shownNotificationIds = {};
   static String? _listeningUserId;
@@ -207,35 +240,36 @@ class PushNotificationService {
         .where('userId', isEqualTo: userId)
         .snapshots()
         .listen((snapshot) {
-      for (var change in snapshot.docChanges) {
-        if (change.type == DocumentChangeType.added) {
-          final data = change.doc.data();
-          final id = change.doc.id;
+          for (var change in snapshot.docChanges) {
+            if (change.type == DocumentChangeType.added) {
+              final data = change.doc.data();
+              final id = change.doc.id;
 
-          if (data == null || _shownNotificationIds.contains(id)) continue;
-          _shownNotificationIds.add(id);
+              if (data == null || _shownNotificationIds.contains(id)) continue;
+              _shownNotificationIds.add(id);
 
-          final createdAt = data['createdAt'] as Timestamp?;
-          if (createdAt == null) continue;
+              final createdAt = data['createdAt'] as Timestamp?;
+              if (createdAt == null) continue;
 
-          final notifTime = createdAt.toDate();
+              final notifTime = createdAt.toDate();
 
-          // Only show if the document was created AFTER the listener started.
-          // We allow a small 5s buffer for Firestore propagation delay.
-          if (_listenerStartedAt != null &&
-              notifTime.isAfter(_listenerStartedAt!.subtract(const Duration(seconds: 5)))) {
-            _showLocalNotificationDirect(
-              id: id.hashCode,
-              title: data['title'] ?? 'New Update',
-              body: data['description'] ?? '',
-              payload: data['eventId'] ?? '',
-            );
+              // Only show if the document was created AFTER the listener started.
+              // We allow a small 5s buffer for Firestore propagation delay.
+              if (_listenerStartedAt != null &&
+                  notifTime.isAfter(
+                    _listenerStartedAt!.subtract(const Duration(seconds: 5)),
+                  )) {
+                _showLocalNotificationDirect(
+                  id: id.hashCode,
+                  title: data['title'] ?? 'New Update',
+                  body: data['description'] ?? '',
+                  payload: data['eventId'] ?? '',
+                );
+              }
+            }
           }
-        }
-      }
-    });
+        });
   }
-
 
   static Future<void> _showLocalNotificationDirect({
     required int id,
@@ -245,16 +279,17 @@ class PushNotificationService {
   }) async {
     const AndroidNotificationDetails androidPlatformChannelSpecifics =
         AndroidNotificationDetails(
-      'high_importance_channel',
-      'High Importance Notifications',
-      importance: Importance.max,
-      priority: Priority.high,
-      showWhen: true,
-      channelShowBadge: true,
+          'high_importance_channel',
+          'High Importance Notifications',
+          importance: Importance.max,
+          priority: Priority.high,
+          showWhen: true,
+          channelShowBadge: true,
+        );
+    const NotificationDetails platformChannelSpecifics = NotificationDetails(
+      android: androidPlatformChannelSpecifics,
     );
-    const NotificationDetails platformChannelSpecifics =
-        NotificationDetails(android: androidPlatformChannelSpecifics);
-    
+
     await _localNotifications.show(
       id: id,
       title: title,

@@ -46,11 +46,10 @@ class DashboardHeader extends StatelessWidget {
                     ),
                     child: Center(
                       child: Text(
-                        clubName.isNotEmpty
-                            ? clubName[0].toUpperCase()
-                            : 'C',
-                        style: AppTextStyles.headingL
-                            .copyWith(color: AppColors.white),
+                        clubName.isNotEmpty ? clubName[0].toUpperCase() : 'C',
+                        style: AppTextStyles.headingL.copyWith(
+                          color: AppColors.white,
+                        ),
                       ),
                     ),
                   ),
@@ -73,15 +72,18 @@ class DashboardHeader extends StatelessWidget {
                                 clubName,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: AppTextStyles.headingL
-                                    .copyWith(color: AppColors.white),
+                                style: AppTextStyles.headingL.copyWith(
+                                  color: AppColors.white,
+                                ),
                               ),
                             ),
                             if (isVerified) ...[
                               const SizedBox(width: 8),
                               Container(
                                 padding: const EdgeInsets.symmetric(
-                                    horizontal: 8, vertical: 3),
+                                  horizontal: 8,
+                                  vertical: 3,
+                                ),
                                 decoration: BoxDecoration(
                                   color: AppColors.success,
                                   borderRadius: BorderRadius.circular(20),
@@ -89,8 +91,11 @@ class DashboardHeader extends StatelessWidget {
                                 child: const Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    Icon(Icons.verified_rounded,
-                                        size: 11, color: AppColors.white),
+                                    Icon(
+                                      Icons.verified_rounded,
+                                      size: 11,
+                                      color: AppColors.white,
+                                    ),
                                     SizedBox(width: 3),
                                     Text(
                                       'Verified',

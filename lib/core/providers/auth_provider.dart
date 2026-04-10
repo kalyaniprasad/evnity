@@ -68,12 +68,17 @@ class AuthFormState {
   final bool isLoading;
   final String? errorMessage;
 
+  /// True immediately after a brand-new email/password registration succeeds.
+  /// Reset to false after the caller has consumed it (navigated to verify screen).
+  final bool isNewEmailRegistration;
+
   const AuthFormState({
     this.selectedRole = UserRole.none,
     this.isLoginMode = true,
     this.isPasswordVisible = false,
     this.isLoading = false,
     this.errorMessage,
+    this.isNewEmailRegistration = false,
   });
 
   AuthFormState copyWith({
@@ -83,6 +88,7 @@ class AuthFormState {
     bool? isLoading,
     String? errorMessage,
     bool clearError = false,
+    bool? isNewEmailRegistration,
   }) {
     return AuthFormState(
       selectedRole: selectedRole ?? this.selectedRole,
@@ -90,6 +96,8 @@ class AuthFormState {
       isPasswordVisible: isPasswordVisible ?? this.isPasswordVisible,
       isLoading: isLoading ?? this.isLoading,
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
+      isNewEmailRegistration:
+          isNewEmailRegistration ?? this.isNewEmailRegistration,
     );
   }
 }
@@ -123,6 +131,10 @@ class AuthFormNotifier extends Notifier<AuthFormState> {
 
   void clearError() => state = state.copyWith(clearError: true);
 
+  /// Called by the auth screen once it has consumed the flag and navigated.
+  void clearNewRegistration() =>
+      state = state.copyWith(isNewEmailRegistration: false);
+
   // ── Submit (Email Sign Up / Sign In) ──────────────────────────────────────
 
   Future<void> submitForm({
@@ -140,32 +152,37 @@ class AuthFormNotifier extends Notifier<AuthFormState> {
     setLoading(true);
 
     final service = ref.read(authServiceProvider);
-    final roleStr =
-        state.selectedRole == UserRole.student ? 'student' : 'club';
+    final roleStr = state.selectedRole == UserRole.student ? 'student' : 'club';
 
     try {
       if (state.isLoginMode) {
         // ── Role conflict check (email sign-in only) ────────────────────────
-        // Query Firestore for the role this email is registered as.
-        // If it mismatches the selected role, abort and surface a dialog-friendly error.
         final storedRole = await service.checkEmailRole(email);
         if (storedRole != null && storedRole != roleStr) {
           setError(AuthService.roleConflictMessage(storedRole, roleStr));
           return;
         }
         await service.signInWithEmail(email: email, password: password);
+        state = state.copyWith(
+          isLoading: false,
+          clearError: true,
+          isNewEmailRegistration: false,
+        );
       } else {
+        // ── Brand-new email registration ───────────────────────────────────
         await service.signUpWithEmail(
           email: email,
           password: password,
           name: name ?? 'User${DateTime.now().millisecond}',
           role: roleStr,
         );
+        // Signal that the UI should redirect to the verification screen.
+        state = state.copyWith(
+          isLoading: false,
+          clearError: true,
+          isNewEmailRegistration: true,
+        );
       }
-
-      // On success clear loading – navigation is handled by the router
-      // watching firebaseUserProvider + userRoleProvider.
-      state = state.copyWith(isLoading: false, clearError: true);
     } on FirebaseAuthException catch (e) {
       setError(AuthService.friendlyError(e));
     } catch (e) {
@@ -174,5 +191,6 @@ class AuthFormNotifier extends Notifier<AuthFormState> {
   }
 }
 
-final authFormProvider =
-    NotifierProvider<AuthFormNotifier, AuthFormState>(AuthFormNotifier.new);
+final authFormProvider = NotifierProvider<AuthFormNotifier, AuthFormState>(
+  AuthFormNotifier.new,
+);

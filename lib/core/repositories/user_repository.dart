@@ -16,6 +16,7 @@ class UserRepository {
     return UserModel(
       id: doc.id,
       email: data['email'] ?? '',
+      name: data['name'] ?? '',
       aliasName: data['aliasName'] ?? '',
       role: data['role'] ?? 'student',
       avatarUrl: data['avatarUrl'],
@@ -30,6 +31,7 @@ class UserRepository {
   Future<void> createUser(UserModel user) async {
     await _db.collection('users').doc(user.id).set({
       'email': user.email,
+      'name': user.name,
       'aliasName': user.aliasName,
       'role': user.role,
       'avatarUrl': user.avatarUrl,

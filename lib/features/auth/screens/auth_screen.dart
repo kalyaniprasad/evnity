@@ -50,7 +50,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   Future<void> _handleSubmit() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
 
-    await ref.read(authFormProvider.notifier).submitForm(
+    await ref
+        .read(authFormProvider.notifier)
+        .submitForm(
           email: _emailController.text.trim(),
           password: _passwordController.text,
           name: _nameController.text.trim(),
@@ -64,11 +66,18 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
       return;
     }
 
-    // Success → get role and navigate
-    if (mounted) {
-      final role = await ref.read(userRoleProvider.future);
-      _navigateForRole(role);
+    if (!mounted) return;
+
+    // Brand-new email registration → redirect to verification screen
+    if (formState.isNewEmailRegistration) {
+      ref.read(authFormProvider.notifier).clearNewRegistration();
+      context.go('/verify-email');
+      return;
     }
+
+    // Existing sign-in → navigate by role
+    final role = await ref.read(userRoleProvider.future);
+    _navigateForRole(role);
   }
 
   // ── Google Sign-In ────────────────────────────────────────────────────────
@@ -85,8 +94,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
       return;
     }
 
-    final roleStr =
-        formState.selectedRole == UserRole.club ? 'club' : 'student';
+    final roleStr = formState.selectedRole == UserRole.club
+        ? 'club'
+        : 'student';
 
     setState(() => _isGoogleLoading = true);
 
@@ -112,10 +122,17 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
         }
       }
 
-      if (mounted) {
-        final role = await ref.read(userRoleProvider.future);
-        _navigateForRole(role);
+      if (!mounted) return;
+
+      // Brand-new Google user → show success animation first
+      if (credential.additionalUserInfo?.isNewUser == true) {
+        context.go('/success');
+        return;
       }
+
+      // Returning Google user → navigate by role
+      final role = await ref.read(userRoleProvider.future);
+      _navigateForRole(role);
     } on Exception catch (e) {
       if (mounted) {
         _showErrorSnackBar('Google sign-in failed: ${e.toString()}');
@@ -125,7 +142,6 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     }
   }
 
-
   // ── Role-conflict dialog (Problem 3) ─────────────────────────────────
   void _showConflictDialog(String storedRole, String attemptedRole) {
     final message = AuthService.roleConflictMessage(storedRole, attemptedRole);
@@ -133,8 +149,11 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        icon: Icon(Icons.warning_amber_rounded,
-            size: 32, color: AppColors.warning),
+        icon: Icon(
+          Icons.warning_amber_rounded,
+          size: 32,
+          color: AppColors.warning,
+        ),
         title: Text('Role Mismatch', style: AppTextStyles.headingM),
         content: Text(message, style: AppTextStyles.bodyM),
         actions: [
@@ -144,7 +163,8 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
               backgroundColor: AppColors.primary,
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10)),
+                borderRadius: BorderRadius.circular(10),
+              ),
             ),
             child: const Text('Got It'),
           ),
@@ -179,8 +199,10 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                   _NavRow(onBack: () => context.go('/onboarding')),
                   const SizedBox(height: 32),
 
-                  Text('How would you\nlike to join?',
-                      style: AppTextStyles.displayL),
+                  Text(
+                    'How would you\nlike to join?',
+                    style: AppTextStyles.displayL,
+                  ),
                   const SizedBox(height: 8),
                   Text(
                     formState.isLoginMode
@@ -200,7 +222,8 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                           sublabel: 'Participant',
                           isSelected:
                               formState.selectedRole == UserRole.student,
-                          onTap: () => formNotifier.selectRole(UserRole.student),
+                          onTap: () =>
+                              formNotifier.selectRole(UserRole.student),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -274,8 +297,11 @@ class _NavRow extends StatelessWidget {
               borderRadius: BorderRadius.circular(13),
               border: Border.all(color: AppColors.divider),
             ),
-            child: const Icon(Icons.arrow_back_rounded,
-                size: 20, color: AppColors.textSecondary),
+            child: const Icon(
+              Icons.arrow_back_rounded,
+              size: 20,
+              color: AppColors.textSecondary,
+            ),
           ),
         ),
         const Spacer(),
@@ -293,7 +319,11 @@ class _NavRow extends StatelessWidget {
               ),
             ],
           ),
-          child: const Icon(Icons.event_rounded, size: 22, color: AppColors.white),
+          child: const Icon(
+            Icons.event_rounded,
+            size: 22,
+            color: AppColors.white,
+          ),
         ),
       ],
     );
@@ -507,8 +537,11 @@ class _ErrorBanner extends StatelessWidget {
       ),
       child: Row(
         children: [
-          const Icon(Icons.error_outline_rounded,
-              size: 18, color: AppColors.error),
+          const Icon(
+            Icons.error_outline_rounded,
+            size: 18,
+            color: AppColors.error,
+          ),
           const SizedBox(width: 10),
           Expanded(
             child: Text(

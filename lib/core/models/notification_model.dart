@@ -1,4 +1,10 @@
-enum NotificationType { eventUpdate, reminder, announcement, registration }
+enum NotificationType {
+  eventUpdate,
+  reminder,
+  announcement,
+  registration,
+  profileIncomplete,
+}
 
 class NotificationModel {
   final String id;
@@ -20,12 +26,12 @@ class NotificationModel {
   });
 
   NotificationModel copyWith({bool? isRead}) => NotificationModel(
-        id: id,
-        title: title,
-        description: description,
-        timestamp: timestamp,
-        type: type,
-        isRead: isRead ?? this.isRead,
-        eventId: eventId,
-      );
+    id: id,
+    title: title,
+    description: description,
+    timestamp: timestamp,
+    type: type,
+    isRead: isRead ?? this.isRead,
+    eventId: eventId,
+  );
 }

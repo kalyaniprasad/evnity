@@ -5,6 +5,7 @@ import '../../../../core/theme/theme.dart';
 import '../../providers/club_providers.dart';
 import '../../models/club_event.dart';
 import '../../../../core/providers/student_providers.dart';
+import '../../../../core/repositories/event_repository.dart';
 import '../widgets/dashboard_header.dart';
 import '../widgets/stat_card.dart';
 import '../widgets/club_event_card.dart';
@@ -18,8 +19,9 @@ class ClubDashboardScreen extends ConsumerWidget {
     final events = eventsAsync.valueOrNull ?? [];
     final stats = ref.watch(clubStatsProvider);
     final currentUser = ref.watch(currentUserProvider);
-    final published =
-        events.where((e) => e.status == EventStatus.published).toList();
+    final published = events
+        .where((e) => e.status == EventStatus.published)
+        .toList();
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -29,9 +31,11 @@ class ClubDashboardScreen extends ConsumerWidget {
           // ── Gradient Header ──────────────────────────────────────────────
           SliverToBoxAdapter(
             child: DashboardHeader(
-              clubName: ref.watch(clubProfileProvider).name.isNotEmpty 
-                ? ref.watch(clubProfileProvider).name 
-                : (currentUser.aliasName.isNotEmpty ? currentUser.aliasName : 'Your Club'),
+              clubName: ref.watch(clubProfileProvider).name.isNotEmpty
+                  ? ref.watch(clubProfileProvider).name
+                  : (currentUser.name.isNotEmpty
+                        ? currentUser.name
+                        : 'Your Club'),
             ),
           ),
 
@@ -39,7 +43,6 @@ class ClubDashboardScreen extends ConsumerWidget {
             padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
             sliver: SliverList(
               delegate: SliverChildListDelegate([
-
                 // ── Quick Actions ──────────────────────────────────────────
                 Text('Quick Actions', style: AppTextStyles.headingM),
                 const SizedBox(height: 14),
@@ -112,9 +115,12 @@ class ClubDashboardScreen extends ConsumerWidget {
                         minimumSize: Size.zero,
                         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       ),
-                      child: Text('See all',
-                          style: AppTextStyles.labelS
-                              .copyWith(color: AppColors.primary)),
+                      child: Text(
+                        'See all',
+                        style: AppTextStyles.labelS.copyWith(
+                          color: AppColors.primary,
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -123,15 +129,16 @@ class ClubDashboardScreen extends ConsumerWidget {
                 if (published.isEmpty)
                   _EmptyState(onTap: () => context.go('/club/create'))
                 else
-                  ...published.map((e) => Padding(
-                        padding: const EdgeInsets.only(bottom: 16),
-                        child: ClubEventCard(
-                          event: e,
-                          onDelete: () => ref
-                              .read(eventRepositoryProvider)
-                              .deleteEvent(e.id),
-                        ),
-                      )),
+                  ...published.map(
+                    (e) => Padding(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: ClubEventCard(
+                        event: e,
+                        onDelete: () =>
+                            ref.read(eventRepositoryProvider).deleteEvent(e.id),
+                      ),
+                    ),
+                  ),
 
                 const SizedBox(height: 24),
               ]),
@@ -168,8 +175,11 @@ class _EmptyState extends StatelessWidget {
               color: AppColors.primarySurface,
               borderRadius: BorderRadius.circular(22),
             ),
-            child: const Icon(Icons.event_note_rounded,
-                size: 36, color: AppColors.primaryMuted),
+            child: const Icon(
+              Icons.event_note_rounded,
+              size: 36,
+              color: AppColors.primaryMuted,
+            ),
           ),
           const SizedBox(height: 16),
           Text('No events yet', style: AppTextStyles.headingM),
@@ -190,12 +200,14 @@ class _EmptyState extends StatelessWidget {
                 foregroundColor: AppColors.white,
                 elevation: 0,
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14)),
+                  borderRadius: BorderRadius.circular(14),
+                ),
               ),
               icon: const Icon(Icons.add_rounded, size: 18),
-              label: const Text('Create Event',
-                  style: TextStyle(
-                      fontSize: 14, fontWeight: FontWeight.w700)),
+              label: const Text(
+                'Create Event',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+              ),
             ),
           ),
         ],

@@ -1,6 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/models.dart';
 import '../../features/club/models/club_event.dart';
+import '../../features/club/models/registration_field_model.dart';
 
 class EventRepository {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -15,8 +17,8 @@ class EventRepository {
       'registrationCount': 0,
       'messageCount': 0,
     });
-    
-    // Auto-update event document to include the generated random ID as an explicitly queryable field if needed 
+
+    // Auto-update event document to include the generated random ID as an explicitly queryable field if needed
     await docRef.update({'id': docRef.id});
     return docRef.id;
   }
@@ -28,7 +30,10 @@ class EventRepository {
   }
 
   /// Update an event (Club action)
-  Future<void> updateEvent(String eventId, Map<String, dynamic> eventData) async {
+  Future<void> updateEvent(
+    String eventId,
+    Map<String, dynamic> eventData,
+  ) async {
     await _db.collection('events').doc(eventId).update({
       ...eventData,
       'updatedAt': FieldValue.serverTimestamp(),
@@ -39,29 +44,38 @@ class EventRepository {
   Stream<List<EventModel>> streamEvents() {
     return _db
         .collection('events')
-        .where('status', isEqualTo: 'published') // Optional: map your EventStatus
+        .where(
+          'status',
+          isEqualTo: 'published',
+        ) // Optional: map your EventStatus
         .orderBy('createdAt', descending: true)
         .snapshots()
         .map((snapshot) {
-      return snapshot.docs.map((doc) {
-        final data = doc.data();
-        return EventModel(
-          id: doc.id,
-          title: data['title'] ?? '',
-          hostClubId: data['clubId'] ?? '',
-          clubName: data['clubName'] ?? '',
-          organizerName: data['organizerName'] ?? data['clubName'] ?? '', // Fallback for old data
-          clubLogoUrl: data['clubLogoUrl'] ?? '',
-          date: data['date'] ?? '',
-          time: data['time'] ?? '',
-          venue: data['venue'] ?? '',
-          category: data['category'] ?? 'Other',
-          posterUrl: data['posterUrl'] ?? '',  // Cloudinary URL
-          description: data['description'] ?? '',
-          registrationCount: data['registrationCount'] ?? 0,
-        );
-      }).toList();
-    });
+          return snapshot.docs.map((doc) {
+            final data = doc.data();
+            return EventModel(
+              id: doc.id,
+              title: data['title'] ?? '',
+              hostClubId: data['clubId'] ?? '',
+              clubName: data['clubName'] ?? '',
+              organizerName:
+                  data['organizerName'] ??
+                  data['clubName'] ??
+                  '', // Fallback for old data
+              clubLogoUrl: data['clubLogoUrl'] ?? '',
+              date: data['date'] ?? '',
+              time: data['time'] ?? '',
+              venue: data['venue'] ?? '',
+              category: data['category'] ?? 'Other',
+              posterUrl: data['posterUrl'] ?? '', // Cloudinary URL
+              description: data['description'] ?? '',
+              registrationCount: data['registrationCount'] ?? 0,
+              registrationFields: (data['registrationFields'] as List<dynamic>? ?? [])
+                  .map((f) => RegistrationFieldModel.fromJson(f as Map<String, dynamic>))
+                  .toList(),
+            );
+          }).toList();
+        });
   }
 
   /// Stream events created by a specific club
@@ -72,23 +86,29 @@ class EventRepository {
         .orderBy('createdAt', descending: true)
         .snapshots()
         .map((snapshot) {
-      return snapshot.docs.map((doc) {
-        final data = doc.data();
-        return ClubEvent(
-          id: doc.id,
-          title: data['title'] ?? '',
-          category: data['category'] ?? 'Other',
-          date: data['date'] ?? '',
-          time: data['time'] ?? '',
-          venue: data['venue'] ?? '',
-          posterUrl: data['posterUrl'] ?? '',
-          description: data['description'] ?? '',
-          status: data['status'] == 'published' ? EventStatus.published : EventStatus.draft,
-          registrationCount: data['registrationCount'] ?? 0,
-          messageCount: data['messageCount'] ?? 0,
-        );
-      }).toList();
-    });
+          return snapshot.docs.map((doc) {
+            final data = doc.data();
+            return ClubEvent(
+              id: doc.id,
+              title: data['title'] ?? '',
+              category: data['category'] ?? 'Other',
+              date: data['date'] ?? '',
+              time: data['time'] ?? '',
+              venue: data['venue'] ?? '',
+              posterUrl: data['posterUrl'] ?? '',
+              description: data['description'] ?? '',
+              status: data['status'] == 'published'
+                  ? EventStatus.published
+                  : EventStatus.draft,
+              registrationCount: data['registrationCount'] ?? 0,
+              messageCount: data['messageCount'] ?? 0,
+              registrationFields: (data['registrationFields'] as List<dynamic>? ?? [])
+                  .map((f) => RegistrationFieldModel.fromJson(
+                      f as Map<String, dynamic>))
+                  .toList(),
+            );
+          }).toList();
+        });
   }
 
   // ─── Registration Transactions ─────────────────────────────────────────────
@@ -106,11 +126,9 @@ class EventRepository {
     final registrationRef = eventRef.collection('registrations').doc(userId);
     final notifRef = _db.collection('notifications').doc(); // Auto ID
 
-    await _db.runTransaction((transaction) async {
+    return await _db.runTransaction((transaction) async {
       final eventDoc = await transaction.get(eventRef);
       if (!eventDoc.exists) throw Exception("Event does not exist!");
-
-      final userDoc = await transaction.get(userRef);
 
       // Check if already registered
       final regDoc = await transaction.get(registrationRef);
@@ -132,7 +150,7 @@ class EventRepository {
 
       // 3. Update User registered array
       transaction.update(userRef, {
-        'registeredEventIds': FieldValue.arrayUnion([eventId])
+        'registeredEventIds': FieldValue.arrayUnion([eventId]),
       });
 
       // 4. Send Confirmation Notification to User
@@ -143,4 +161,20 @@ class EventRepository {
       });
     });
   }
+
+  /// Fetch all registrations for a particular event
+  Future<List<Map<String, dynamic>>> getEventRegistrations(String eventId) async {
+    final snapshot = await _db
+        .collection('events')
+        .doc(eventId)
+        .collection('registrations')
+        .orderBy('registeredAt', descending: true)
+        .get();
+
+    return snapshot.docs.map((doc) => doc.data()).toList();
+  }
 }
+
+final eventRepositoryProvider = Provider<EventRepository>(
+  (ref) => EventRepository(),
+);

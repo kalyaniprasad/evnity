@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/theme.dart';
 import '../../../../core/widgets/app_snackbar.dart';
 import '../../../../core/providers/providers.dart';
+import '../../../../core/providers/student_providers.dart';
 import '../../providers/club_providers.dart';
 import '../../models/models.dart';
 
@@ -15,6 +16,7 @@ class ClubProfileScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final profile = ref.watch(clubProfileProvider);
+    final currentUser = ref.watch(currentUserProvider);
     final stats = ref.watch(clubStatsProvider);
     final eventsAsync = ref.watch(clubEventsProvider);
     final events = eventsAsync.valueOrNull ?? [];
@@ -102,7 +104,11 @@ class ClubProfileScreen extends ConsumerWidget {
                   // ── About ──────────────────────────────────────────────
                   _SectionLabel('About'),
                   const SizedBox(height: 10),
-                  _AboutCard(description: profile.description),
+                  _AboutCard(
+                    description: profile.description.isNotEmpty
+                        ? profile.description
+                        : 'Not provided',
+                  ),
                   const SizedBox(height: 28),
 
                   // ── Club Details ───────────────────────────────────────
@@ -112,31 +118,33 @@ class ClubProfileScreen extends ConsumerWidget {
                     _InfoRow(
                       icon: Icons.alternate_email_rounded,
                       label: 'Contact Email',
-                      value: profile.email,
+                      value: profile.email.isNotEmpty 
+                          ? profile.email 
+                          : (currentUser.email.isNotEmpty ? currentUser.email : 'Not provided'),
                     ),
                     _Divider(),
                     _InfoRow(
                       icon: Icons.category_rounded,
                       label: 'Category',
-                      value: profile.category,
+                      value: profile.category.isNotEmpty ? profile.category : 'Not provided',
                     ),
                     _Divider(),
                     _InfoRow(
                       icon: Icons.person_outline_rounded,
                       label: 'Faculty Mentor',
-                      value: profile.facultyMentor,
+                      value: profile.facultyMentor.isNotEmpty ? profile.facultyMentor : 'Not provided',
                     ),
                     _Divider(),
                     _InfoRow(
                       icon: Icons.calendar_today_rounded,
                       label: 'Founded',
-                      value: profile.founded,
+                      value: profile.founded.isNotEmpty ? profile.founded : 'Not provided',
                     ),
                     _Divider(),
                     _InfoRow(
                       icon: Icons.location_on_outlined,
                       label: 'Location',
-                      value: profile.location,
+                      value: profile.location.isNotEmpty ? profile.location : 'Not provided',
                     ),
                   ]),
                   const SizedBox(height: 28),
@@ -179,12 +187,13 @@ class ClubProfileScreen extends ConsumerWidget {
 
 // ── Club Header ───────────────────────────────────────────────────────────────
 
-class _ClubHeader extends StatelessWidget {
+class _ClubHeader extends ConsumerWidget {
   final ClubProfileModel profile;
   const _ClubHeader({required this.profile});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final currentUser = ref.watch(currentUserProvider);
     return Container(
       decoration: const BoxDecoration(
         gradient: LinearGradient(
@@ -223,7 +232,11 @@ class _ClubHeader extends StatelessWidget {
               children: [
                 Flexible(
                   child: Text(
-                    profile.name,
+                    profile.name.isNotEmpty
+                        ? profile.name
+                        : (currentUser.name.isNotEmpty
+                            ? currentUser.name
+                            : 'Your Club'),
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 21,
@@ -262,7 +275,7 @@ class _ClubHeader extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 32),
               child: Text(
-                profile.tagline,
+                profile.tagline.isNotEmpty ? profile.tagline : 'Not provided',
                 style: TextStyle(
                   color: Colors.white.withValues(alpha: 0.8),
                   fontSize: 13,
@@ -285,7 +298,7 @@ class _ClubHeader extends StatelessWidget {
                     color: Colors.white.withValues(alpha: 0.3)),
               ),
               child: Text(
-                profile.category,
+                profile.category.isNotEmpty ? profile.category : 'Not provided',
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 11,

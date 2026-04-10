@@ -5,6 +5,7 @@ import 'auth_provider.dart';
 import '../repositories/notification_repository.dart';
 import '../repositories/chat_repository.dart';
 import '../services/push_notification_service.dart';
+import '../../../core/utils/alias_generator.dart'; // Added this import
 
 // ═══════════════════════════════════════════════════════════════════════════
 // EVENTS PROVIDER
@@ -13,8 +14,6 @@ import '../services/push_notification_service.dart';
 
 import '../repositories/event_repository.dart';
 
-final eventRepositoryProvider = Provider<EventRepository>((ref) => EventRepository());
-
 final studentEventProvider = StreamProvider<List<EventModel>>((ref) {
   final repo = ref.read(eventRepositoryProvider);
   return repo.streamEvents();
@@ -22,7 +21,10 @@ final studentEventProvider = StreamProvider<List<EventModel>>((ref) {
 
 // Helper for search/filter logic since it's no longer a Notifier
 class EventFilters {
-  static List<EventModel> getByCategory(List<EventModel> events, String category) {
+  static List<EventModel> getByCategory(
+    List<EventModel> events,
+    String category,
+  ) {
     if (category == 'All') return events;
     return events.where((e) => e.category == category).toList();
   }
@@ -31,10 +33,12 @@ class EventFilters {
     if (query.trim().isEmpty) return events;
     final q = query.toLowerCase();
     return events
-        .where((e) =>
-            e.title.toLowerCase().contains(q) ||
-            e.clubName.toLowerCase().contains(q) ||
-            e.category.toLowerCase().contains(q))
+        .where(
+          (e) =>
+              e.title.toLowerCase().contains(q) ||
+              e.clubName.toLowerCase().contains(q) ||
+              e.category.toLowerCase().contains(q),
+        )
         .toList();
   }
 }
@@ -54,14 +58,14 @@ final eventByIdProvider = Provider.family<EventModel?, String>((ref, id) {
 // NOTIFICATION PROVIDER
 // ═══════════════════════════════════════════════════════════════════════════
 
-
-
-final notificationRepositoryProvider = Provider<NotificationRepository>((ref) => NotificationRepository());
+final notificationRepositoryProvider = Provider<NotificationRepository>(
+  (ref) => NotificationRepository(),
+);
 
 final notificationProvider = StreamProvider<List<NotificationModel>>((ref) {
   final user = ref.watch(currentUserProvider);
   if (user.id.isEmpty) return Stream.value([]);
-  
+
   final repo = ref.read(notificationRepositoryProvider);
   return repo.streamUserNotifications(user.id);
 });
@@ -76,13 +80,16 @@ final unreadCountProvider = Provider<int>((ref) {
 // DISCUSSION PROVIDER
 // ═══════════════════════════════════════════════════════════════════════════
 
-final chatRepositoryProvider = Provider<ChatRepository>((ref) => ChatRepository());
+final chatRepositoryProvider = Provider<ChatRepository>(
+  (ref) => ChatRepository(),
+);
 
 // discussionStreamProvider streams data based on an event ID
-final discussionStreamProvider = StreamProvider.family<List<MessageModel>, String>((ref, eventId) {
-  final repo = ref.watch(chatRepositoryProvider);
-  return repo.streamEventMessages(eventId);
-});
+final discussionStreamProvider =
+    StreamProvider.family<List<MessageModel>, String>((ref, eventId) {
+      final repo = ref.watch(chatRepositoryProvider);
+      return repo.streamEventMessages(eventId);
+    });
 
 // Provides an easy way to send messages
 class DiscussionHelper {
@@ -111,7 +118,9 @@ class DiscussionHelper {
   }
 }
 
-final discussionHelperProvider = Provider<DiscussionHelper>((ref) => DiscussionHelper(ref));
+final discussionHelperProvider = Provider<DiscussionHelper>(
+  (ref) => DiscussionHelper(ref),
+);
 
 // studentEventProvider is now a StreamProvider
 
@@ -129,18 +138,25 @@ class CurrentUserNotifier extends Notifier<UserModel> {
       return const UserModel(
         id: '',
         email: '',
+        name: 'Guest',
         aliasName: 'Guest',
         role: 'student',
       );
     }
 
     // Attempt to fetch fresh data from Firestore
-    _fetchUser(firebaseUser.uid, firebaseUser.email, firebaseUser.displayName, firebaseUser.photoURL);
+    _fetchUser(
+      firebaseUser.uid,
+      firebaseUser.email,
+      firebaseUser.displayName,
+      firebaseUser.photoURL,
+    );
 
     // Initial state based on Auth token
     return UserModel(
       id: firebaseUser.uid,
       email: firebaseUser.email ?? '',
+      name: firebaseUser.displayName ?? '',
       aliasName: firebaseUser.displayName?.isNotEmpty == true
           ? firebaseUser.displayName!
           : (firebaseUser.email?.split('@').first ?? 'User'),
@@ -149,14 +165,29 @@ class CurrentUserNotifier extends Notifier<UserModel> {
     );
   }
 
-  Future<void> _fetchUser(String uid, String? email, String? name, String? photoUrl) async {
+  Future<void> _fetchUser(
+    String uid,
+    String? email,
+    String? name,
+    String? photoUrl,
+  ) async {
     final userRepository = ref.read(userRepositoryProvider);
-    final dbUser = await userRepository.getUser(uid);
+    var dbUser = await userRepository.getUser(uid);
+    final notifRepo = ref.read(notificationRepositoryProvider);
+
+    if (dbUser == null) {
+      // Possible race condition: auth state changed before AuthService finished writing to Firestore.
+      // Wait briefly and try fetching again.
+      await Future.delayed(const Duration(milliseconds: 1000));
+      dbUser = await userRepository.getUser(uid);
+    }
 
     if (dbUser != null) {
       state = dbUser;
       // Start listening for notifications once user is loaded
       PushNotificationService.startFirestoreListener(uid);
+      // Ensure a profile-incomplete notification exists if needed
+      _checkAndEnsureProfileNotification(dbUser, notifRepo);
     } else {
       // User doc might not exist yet if just registered via Google, create it
       final roleAsync = ref.read(userRoleProvider);
@@ -165,7 +196,8 @@ class CurrentUserNotifier extends Notifier<UserModel> {
       final newUser = UserModel(
         id: uid,
         email: email ?? '',
-        aliasName: name ?? (email?.split('@').first ?? 'User'),
+        name: name ?? (email?.split('@').first ?? 'User'),
+        aliasName: role == 'club' ? '' : AliasGenerator.generate(),
         role: role,
         avatarUrl: photoUrl,
       );
@@ -173,6 +205,33 @@ class CurrentUserNotifier extends Notifier<UserModel> {
       state = newUser;
       // Start listening for notifications for newly created user
       PushNotificationService.startFirestoreListener(uid);
+      // New user always has an incomplete profile
+      await notifRepo.ensureProfileIncompleteNotification(
+        userId: uid,
+        role: role,
+      );
+    }
+  }
+
+  void _checkAndEnsureProfileNotification(
+    UserModel user,
+    NotificationRepository notifRepo,
+  ) {
+    final isStudent = user.role == 'student';
+    final bool incomplete = isStudent
+        ? ((user.branch == null || user.branch!.isEmpty) ||
+              (user.year == null || user.year!.isEmpty) ||
+              (user.bio == null || user.bio!.isEmpty))
+        : false; // Club profile completeness is checked separately
+
+    if (incomplete) {
+      notifRepo.ensureProfileIncompleteNotification(
+        userId: user.id,
+        role: user.role,
+      );
+    } else if (isStudent) {
+      // Profile is now complete — remove the reminder notification
+      notifRepo.dismissProfileIncompleteNotification(user.id);
     }
   }
 
@@ -182,6 +241,7 @@ class CurrentUserNotifier extends Notifier<UserModel> {
 
   void updateProfile(StudentProfileEditState editState) {
     state = state.copyWith(
+      name: editState.fullName,
       aliasName: editState.aliasName,
       branch: editState.branch,
       year: editState.year,
@@ -190,11 +250,26 @@ class CurrentUserNotifier extends Notifier<UserModel> {
   }
 }
 
-final currentUserProvider =
-    NotifierProvider<CurrentUserNotifier, UserModel>(CurrentUserNotifier.new);
+final currentUserProvider = NotifierProvider<CurrentUserNotifier, UserModel>(
+  CurrentUserNotifier.new,
+);
 
 // User Repository Provider
-final userRepositoryProvider = Provider<UserRepository>((ref) => UserRepository());
+final userRepositoryProvider = Provider<UserRepository>(
+  (ref) => UserRepository(),
+);
+
+// ─── Profile Completion Check ─────────────────────────────────────────────────
+
+/// True when the logged-in student's profile is not fully filled in.
+/// Watches live so it updates the moment the user saves their profile.
+final isProfileIncompleteProvider = Provider<bool>((ref) {
+  final user = ref.watch(currentUserProvider);
+  if (user.id.isEmpty || user.role != 'student') return false;
+  return (user.branch == null || user.branch!.isEmpty) ||
+      (user.year == null || user.year!.isEmpty) ||
+      (user.bio == null || user.bio!.isEmpty);
+});
 
 // ═══════════════════════════════════════════════════════════════════════════
 // SEARCH PROVIDER
@@ -221,19 +296,18 @@ class SearchState {
   final String query;
   final String selectedCategory;
 
-  const SearchState({
-    this.query = '',
-    this.selectedCategory = 'All',
-  });
+  const SearchState({this.query = '', this.selectedCategory = 'All'});
 
-  SearchState copyWith({String? query, String? selectedCategory}) => SearchState(
+  SearchState copyWith({String? query, String? selectedCategory}) =>
+      SearchState(
         query: query ?? this.query,
         selectedCategory: selectedCategory ?? this.selectedCategory,
       );
 }
 
-final searchProvider =
-    NotifierProvider<SearchNotifier, SearchState>(SearchNotifier.new);
+final searchProvider = NotifierProvider<SearchNotifier, SearchState>(
+  SearchNotifier.new,
+);
 
 // Derived: filtered results
 final filteredEventsProvider = Provider<List<EventModel>>((ref) {
@@ -276,10 +350,12 @@ final filteredClubsProvider = Provider<List<ClubModel>>((ref) {
   if (searchState.query.trim().isNotEmpty) {
     final q = searchState.query.toLowerCase();
     results = results
-        .where((c) =>
-            c.name.toLowerCase().contains(q) ||
-            c.category.toLowerCase().contains(q) ||
-            c.description.toLowerCase().contains(q))
+        .where(
+          (c) =>
+              c.name.toLowerCase().contains(q) ||
+              c.category.toLowerCase().contains(q) ||
+              c.description.toLowerCase().contains(q),
+        )
         .toList();
   }
 
@@ -313,7 +389,7 @@ class StudentProfileEditState {
     this.aliasName = '',
     this.fullName = '',
     this.branch = '',
-    this.year = 'First Year',
+    this.year = '',
     this.bio = '',
   });
 
@@ -323,14 +399,13 @@ class StudentProfileEditState {
     String? branch,
     String? year,
     String? bio,
-  }) =>
-      StudentProfileEditState(
-        aliasName: aliasName ?? this.aliasName,
-        fullName: fullName ?? this.fullName,
-        branch: branch ?? this.branch,
-        year: year ?? this.year,
-        bio: bio ?? this.bio,
-      );
+  }) => StudentProfileEditState(
+    aliasName: aliasName ?? this.aliasName,
+    fullName: fullName ?? this.fullName,
+    branch: branch ?? this.branch,
+    year: year ?? this.year,
+    bio: bio ?? this.bio,
+  );
 }
 
 class StudentProfileEditNotifier extends Notifier<StudentProfileEditState> {
@@ -340,9 +415,9 @@ class StudentProfileEditNotifier extends Notifier<StudentProfileEditState> {
     final user = ref.read(currentUserProvider);
     return StudentProfileEditState(
       aliasName: user.aliasName,
-      fullName: user.aliasName, // We can keep fullName mapping to aliasName if there is no separate fullName field
-      branch: user.branch ?? '', 
-      year: user.year ?? 'First Year',
+      fullName: user.name, // Mapping to the real name field
+      branch: user.branch ?? '',
+      year: user.year ?? '',
       bio: user.bio ?? '',
     );
   }
@@ -360,8 +435,8 @@ class StudentProfileEditNotifier extends Notifier<StudentProfileEditState> {
 
     final repo = ref.read(userRepositoryProvider);
 
-    // Using aliasName mapped to the form aliasName field
     final updatedData = {
+      'name': state.fullName,
       'aliasName': state.aliasName,
       'branch': state.branch,
       'year': state.year,
@@ -372,10 +447,21 @@ class StudentProfileEditNotifier extends Notifier<StudentProfileEditState> {
 
     // Refresh the local State
     ref.read(currentUserProvider.notifier).updateProfile(state);
+
+    // Dismiss the profile-completion notification if profile is now complete
+    final isNowComplete =
+        state.branch.isNotEmpty &&
+        state.year.isNotEmpty &&
+        state.bio.isNotEmpty;
+    if (isNowComplete) {
+      await ref
+          .read(notificationRepositoryProvider)
+          .dismissProfileIncompleteNotification(user.id);
+    }
   }
 }
 
 final studentProfileEditProvider =
     NotifierProvider<StudentProfileEditNotifier, StudentProfileEditState>(
-        StudentProfileEditNotifier.new);
-
+      StudentProfileEditNotifier.new,
+    );

@@ -10,13 +10,12 @@ class MessageBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isStudent = message.senderType == MessageSenderType.student;
-
     return Padding(
       padding: const EdgeInsets.only(bottom: 14),
       child: Row(
-        mainAxisAlignment:
-            isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
+        mainAxisAlignment: isMe
+            ? MainAxisAlignment.end
+            : MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           // Student avatar (left)
@@ -26,8 +25,7 @@ class MessageBubble extends StatelessWidget {
               backgroundColor: AppColors.primarySurface,
               child: Text(
                 message.senderAlias[0].toUpperCase(),
-                style: AppTextStyles.labelS
-                    .copyWith(color: AppColors.primary),
+                style: AppTextStyles.labelS.copyWith(color: AppColors.primary),
               ),
             ),
             const SizedBox(width: 8),
@@ -35,8 +33,9 @@ class MessageBubble extends StatelessWidget {
 
           Flexible(
             child: Column(
-              crossAxisAlignment:
-                  isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+              crossAxisAlignment: isMe
+                  ? CrossAxisAlignment.end
+                  : CrossAxisAlignment.start,
               children: [
                 // Sender name
                 if (!isMe)
@@ -54,7 +53,9 @@ class MessageBubble extends StatelessWidget {
                 // Bubble
                 Container(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 14, vertical: 10),
+                    horizontal: 14,
+                    vertical: 10,
+                  ),
                   decoration: BoxDecoration(
                     color: isMe ? AppColors.primary : AppColors.surface,
                     borderRadius: BorderRadius.only(
@@ -63,9 +64,7 @@ class MessageBubble extends StatelessWidget {
                       bottomLeft: Radius.circular(isMe ? 18 : 4),
                       bottomRight: Radius.circular(isMe ? 4 : 18),
                     ),
-                    border: isMe
-                        ? null
-                        : Border.all(color: AppColors.divider),
+                    border: isMe ? null : Border.all(color: AppColors.divider),
                     boxShadow: [
                       BoxShadow(
                         color: AppColors.shadowLight,
@@ -77,19 +76,15 @@ class MessageBubble extends StatelessWidget {
                   child: Text(
                     message.message,
                     style: AppTextStyles.bodyM.copyWith(
-                      color: isMe
-                          ? AppColors.white
-                          : AppColors.textPrimary,
+                      color: isMe ? AppColors.white : AppColors.textPrimary,
                     ),
                   ),
                 ),
 
                 // Timestamp
                 Padding(
-                  padding:
-                      const EdgeInsets.only(top: 4, left: 4, right: 4),
-                  child:
-                      Text(message.timestamp, style: AppTextStyles.caption),
+                  padding: const EdgeInsets.only(top: 4, left: 4, right: 4),
+                  child: Text(message.timestamp, style: AppTextStyles.caption),
                 ),
               ],
             ),
@@ -101,8 +96,11 @@ class MessageBubble extends StatelessWidget {
             CircleAvatar(
               radius: 16,
               backgroundColor: AppColors.primarySurface,
-              child: const Icon(Icons.groups_rounded,
-                  size: 16, color: AppColors.primary),
+              child: const Icon(
+                Icons.groups_rounded,
+                size: 16,
+                color: AppColors.primary,
+              ),
             ),
           ],
         ],

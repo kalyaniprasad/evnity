@@ -116,6 +116,7 @@ final List<EventModel> kMockEvents = [
 const kMockUser = UserModel(
   id: 'u1',
   email: 'student@college.edu',
+  name: 'Mock Student',
   aliasName: 'EventExplorer45',
   role: 'student',
   registeredEventIds: ['e2'],

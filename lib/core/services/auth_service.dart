@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import '../utils/alias_generator.dart';
 
 // ── AuthService – Firebase (Email + Google) ────────────────────────────────
 
@@ -32,11 +33,30 @@ class AuthService {
       'uid': credential.user!.uid,
       'email': email,
       'name': name,
+      'aliasName': role == 'club' ? '' : AliasGenerator.generate(),
       'role': role,
       'createdAt': FieldValue.serverTimestamp(),
     });
 
+    // Send email verification to the newly created user
+    await credential.user!.sendEmailVerification();
+
     return credential;
+  }
+
+  // ── Reload user and check email verification ─────────────────────────────
+  /// Reloads the Firebase user from the server and returns whether the email
+  /// is now verified. Used by the polling loop in EmailVerificationScreen.
+  Future<bool> reloadAndCheckVerified() async {
+    final user = _auth.currentUser;
+    if (user == null) return false;
+    await user.reload();
+    return _auth.currentUser?.emailVerified ?? false;
+  }
+
+  // ── Resend verification email ─────────────────────────────────────────────
+  Future<void> resendVerificationEmail() async {
+    await _auth.currentUser?.sendEmailVerification();
   }
 
   // ── Sign In with Email ────────────────────────────────────────────────────
@@ -72,10 +92,12 @@ class AuthService {
       // If new user → persist role to Firestore
       if (userCredential.additionalUserInfo?.isNewUser == true) {
         final role = selectedRole ?? 'student';
+        final displayName = userCredential.user!.displayName ?? 'User';
         await _db.collection('users').doc(userCredential.user!.uid).set({
           'uid': userCredential.user!.uid,
           'email': userCredential.user!.email ?? '',
-          'name': userCredential.user!.displayName ?? 'User',
+          'name': displayName,
+          'aliasName': role == 'club' ? '' : AliasGenerator.generate(),
           'role': role,
           'createdAt': FieldValue.serverTimestamp(),
         });
@@ -118,7 +140,10 @@ class AuthService {
   }
 
   // ── Friendly role-conflict message ───────────────────────────────────────
-  static String roleConflictMessage(String registeredRole, String attemptedRole) {
+  static String roleConflictMessage(
+    String registeredRole,
+    String attemptedRole,
+  ) {
     final reg = registeredRole == 'club' ? 'Club Organizer' : 'Student';
     final att = attemptedRole == 'club' ? 'Club Organizer' : 'Student';
     return 'This email is already registered as a $reg.\n\nPlease use the "$reg" role to sign in, or use a different email for $att access.';

@@ -1,23 +1,48 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/theme.dart';
-import '../../../../core/models/event_model.dart';
+import '../../../../core/models/models.dart';
 import '../../../../core/widgets/live_badge.dart';
+import '../../../../core/repositories/event_repository.dart';
+import '../../../../core/utils/excel_export_helper.dart';
+import '../../../../core/widgets/app_snackbar.dart';
 import '../../models/club_event.dart';
 import 'event_status_badge.dart';
 
-class ClubEventCard extends StatelessWidget {
+class ClubEventCard extends ConsumerWidget {
   final ClubEvent event;
   final VoidCallback? onDelete;
 
-  const ClubEventCard({
-    super.key,
-    required this.event,
-    this.onDelete,
-  });
+  const ClubEventCard({super.key, required this.event, this.onDelete});
+
+  Future<void> _exportAttendees(BuildContext context, WidgetRef ref) async {
+    try {
+      final repo = ref.read(eventRepositoryProvider);
+      final registrations = await repo.getEventRegistrations(event.id);
+
+      if (registrations.isEmpty) {
+        if (context.mounted) {
+          showAppSnackbar(context, 'No registrations found for this event.',
+              type: SnackbarType.warning);
+        }
+        return;
+      }
+
+      await ExcelExportHelper.exportAndShare(
+        eventTitle: event.title,
+        registrations: registrations,
+      );
+    } catch (e) {
+      if (context.mounted) {
+        showAppSnackbar(context, 'Failed to export: $e',
+            type: SnackbarType.error);
+      }
+    }
+  }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Container(
       decoration: BoxDecoration(
         color: AppColors.surface,
@@ -35,8 +60,7 @@ class ClubEventCard extends StatelessWidget {
         children: [
           // ── Poster ───────────────────────────────────────────────────────
           ClipRRect(
-            borderRadius:
-                const BorderRadius.vertical(top: Radius.circular(20)),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
             child: Stack(
               children: [
                 Image.network(
@@ -48,8 +72,11 @@ class ClubEventCard extends StatelessWidget {
                     height: 158,
                     color: AppColors.primarySurface,
                     child: const Center(
-                      child: Icon(Icons.image_outlined,
-                          size: 40, color: AppColors.primaryMuted),
+                      child: Icon(
+                        Icons.image_outlined,
+                        size: 40,
+                        color: AppColors.primaryMuted,
+                      ),
                     ),
                   ),
                   loadingBuilder: (_, child, progress) => progress == null
@@ -66,22 +93,25 @@ class ClubEventCard extends StatelessWidget {
                         ),
                 ),
                 Positioned(
-                    top: 12,
-                    left: 12,
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        _CategoryBadge(category: event.category),
-                        if (event.currentTimingStatus == EventTimingStatus.live) ...[
-                          const SizedBox(width: 8),
-                          const LiveBadge(),
-                        ]
+                  top: 12,
+                  left: 12,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _CategoryBadge(category: event.category),
+                      if (event.currentTimingStatus ==
+                          EventTimingStatus.live) ...[
+                        const SizedBox(width: 8),
+                        const LiveBadge(),
                       ],
-                    )),
+                    ],
+                  ),
+                ),
                 Positioned(
-                    top: 12,
-                    right: 12,
-                    child: EventStatusBadge(status: event.status)),
+                  top: 12,
+                  right: 12,
+                  child: EventStatusBadge(status: event.status),
+                ),
               ],
             ),
           ),
@@ -92,17 +122,19 @@ class ClubEventCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(event.title,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: AppTextStyles.headingM),
+                Text(
+                  event.title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTextStyles.headingM,
+                ),
                 const SizedBox(height: 8),
                 _MetaRow(
-                    icon: Icons.calendar_today_rounded,
-                    text: '${event.date}  ·  ${event.time}'),
+                  icon: Icons.calendar_today_rounded,
+                  text: '${event.date}  ·  ${event.time}',
+                ),
                 const SizedBox(height: 4),
-                _MetaRow(
-                    icon: Icons.location_on_rounded, text: event.venue),
+                _MetaRow(icon: Icons.location_on_rounded, text: event.venue),
                 const SizedBox(height: 12),
 
                 // Stats pills
@@ -122,7 +154,10 @@ class ClubEventCard extends StatelessWidget {
 
                 const SizedBox(height: 14),
                 const Divider(
-                    color: AppColors.divider, thickness: 1, height: 1),
+                  color: AppColors.divider,
+                  thickness: 1,
+                  height: 1,
+                ),
                 const SizedBox(height: 12),
 
                 // Action row
@@ -134,19 +169,40 @@ class ClubEventCard extends StatelessWidget {
                         label: 'Edit',
                         color: AppColors.primary,
                         bg: AppColors.primarySurface,
-                        onTap: () => context
-                            .push('/club/event/${event.id}/edit'),
+                        onTap: () =>
+                            context.push('/club/event/${event.id}/edit'),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    // Download Action
+                    GestureDetector(
+                      onTap: () => _exportAttendees(context, ref),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+                        decoration: BoxDecoration(
+                          color: AppColors.success.withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: AppColors.success.withValues(alpha: 0.2)),
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.download_rounded, size: 14, color: AppColors.success),
+                            SizedBox(width: 5),
+                            Text('Export', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.success)),
+                          ],
+                        ),
                       ),
                     ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: _CardAction(
                         icon: Icons.forum_outlined,
-                        label: 'Discussion',
+                        label: 'Chat',
                         color: AppColors.textSecondary,
                         bg: AppColors.surfaceAlt,
-                        onTap: () => context
-                            .push('/club/event/${event.id}/discussion'),
+                        onTap: () =>
+                            context.push('/club/event/${event.id}/discussion'),
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -160,10 +216,14 @@ class ClubEventCard extends StatelessWidget {
                           color: AppColors.errorSurface,
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                              color: AppColors.error.withOpacity(0.2)),
+                            color: AppColors.error.withValues(alpha: 0.2),
+                          ),
                         ),
-                        child: const Icon(Icons.delete_outline_rounded,
-                            size: 18, color: AppColors.error),
+                        child: const Icon(
+                          Icons.delete_outline_rounded,
+                          size: 18,
+                          color: AppColors.error,
+                        ),
                       ),
                     ),
                   ],
@@ -186,17 +246,19 @@ class _MetaRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Row(
-        children: [
-          Icon(icon, size: 13, color: AppColors.textMuted),
-          const SizedBox(width: 5),
-          Expanded(
-            child: Text(text,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: AppTextStyles.bodyS),
-          ),
-        ],
-      );
+    children: [
+      Icon(icon, size: 13, color: AppColors.textMuted),
+      const SizedBox(width: 5),
+      Expanded(
+        child: Text(
+          text,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: AppTextStyles.bodyS,
+        ),
+      ),
+    ],
+  );
 }
 
 class _StatPill extends StatelessWidget {
@@ -206,24 +268,24 @@ class _StatPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-        padding:
-            const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
-        decoration: BoxDecoration(
-          color: AppColors.background,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: AppColors.divider),
+    padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+    decoration: BoxDecoration(
+      color: AppColors.background,
+      borderRadius: BorderRadius.circular(10),
+      border: Border.all(color: AppColors.divider),
+    ),
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 12, color: AppColors.textMuted),
+        const SizedBox(width: 4),
+        Text(
+          label,
+          style: AppTextStyles.caption.copyWith(fontWeight: FontWeight.w500),
         ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 12, color: AppColors.textMuted),
-            const SizedBox(width: 4),
-            Text(label,
-                style: AppTextStyles.caption
-                    .copyWith(fontWeight: FontWeight.w500)),
-          ],
-        ),
-      );
+      ],
+    ),
+  );
 }
 
 class _CardAction extends StatelessWidget {
@@ -242,28 +304,31 @@ class _CardAction extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => GestureDetector(
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 9),
-          decoration: BoxDecoration(
-            color: bg,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: color.withOpacity(0.18)),
+    onTap: onTap,
+    child: Container(
+      padding: const EdgeInsets.symmetric(vertical: 9),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withOpacity(0.18)),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, size: 16, color: color),
+          const SizedBox(width: 8),
+          Text(
+            label,
+            style: TextStyle(
+              color: color,
+              fontWeight: FontWeight.w600,
+              fontSize: 14,
+            ),
           ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, size: 14, color: color),
-              const SizedBox(width: 5),
-              Text(label,
-                  style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      color: color)),
-            ],
-          ),
-        ),
-      );
+        ],
+      ),
+    ),
+  );
 }
 
 class _CategoryBadge extends StatelessWidget {
@@ -271,28 +336,28 @@ class _CategoryBadge extends StatelessWidget {
   const _CategoryBadge({required this.category});
 
   Color get _color => switch (category) {
-        'Technical' => AppColors.primary,
-        'Cultural' => AppColors.categoryCultural,
-        'Sports' => AppColors.success,
-        'Workshop' => AppColors.warning,
-        'Seminar' => AppColors.categorySeminar,
-        _ => AppColors.textSecondary,
-      };
+    'Technical' => AppColors.primary,
+    'Cultural' => AppColors.categoryCultural,
+    'Sports' => AppColors.success,
+    'Workshop' => AppColors.warning,
+    'Seminar' => AppColors.categorySeminar,
+    _ => AppColors.textSecondary,
+  };
 
   @override
   Widget build(BuildContext context) => Container(
-        padding:
-            const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-        decoration: BoxDecoration(
-          color: _color,
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Text(
-          category,
-          style: const TextStyle(
-              color: AppColors.white,
-              fontSize: 11,
-              fontWeight: FontWeight.w700),
-        ),
-      );
+    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+    decoration: BoxDecoration(
+      color: _color,
+      borderRadius: BorderRadius.circular(20),
+    ),
+    child: Text(
+      category,
+      style: const TextStyle(
+        color: AppColors.white,
+        fontSize: 11,
+        fontWeight: FontWeight.w700,
+      ),
+    ),
+  );
 }

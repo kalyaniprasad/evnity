@@ -12,9 +12,7 @@ import 'core/services/push_notification_service.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   // Initialize push notifications with the reliable background handler
   FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
@@ -33,13 +31,8 @@ void main() async {
     DeviceOrientation.portraitDown,
   ]);
 
-  runApp(
-    const ProviderScope(
-      child: EvnityApp(),
-    ),
-  );
+  runApp(const ProviderScope(child: EvnityApp()));
 }
-
 
 class EvnityApp extends ConsumerWidget {
   const EvnityApp({super.key});

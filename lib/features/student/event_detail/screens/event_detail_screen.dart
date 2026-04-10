@@ -14,9 +14,7 @@ class EventDetailScreen extends ConsumerWidget {
     final currentUser = ref.watch(currentUserProvider);
 
     if (event == null) {
-      return const Scaffold(
-        body: Center(child: Text('Event not found')),
-      );
+      return const Scaffold(body: Center(child: Text('Event not found')));
     }
 
     return Scaffold(
@@ -34,8 +32,11 @@ class EventDetailScreen extends ConsumerWidget {
               child: CircleAvatar(
                 backgroundColor: Colors.black.withOpacity(0.35),
                 child: IconButton(
-                  icon: const Icon(Icons.arrow_back_rounded,
-                      color: Colors.white, size: 20),
+                  icon: const Icon(
+                    Icons.arrow_back_rounded,
+                    color: Colors.white,
+                    size: 20,
+                  ),
                   onPressed: () => context.pop(),
                 ),
               ),
@@ -49,8 +50,11 @@ class EventDetailScreen extends ConsumerWidget {
                     fit: BoxFit.cover,
                     errorBuilder: (_, _, _) => Container(
                       color: AppColors.primarySurface,
-                      child: const Icon(Icons.image_outlined,
-                          size: 60, color: AppColors.primaryMuted),
+                      child: const Icon(
+                        Icons.image_outlined,
+                        size: 60,
+                        color: AppColors.primaryMuted,
+                      ),
                     ),
                   ),
                   // Gradient overlay
@@ -86,18 +90,24 @@ class EventDetailScreen extends ConsumerWidget {
                       if (currentUser.registeredEventIds.contains(event.id))
                         Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 5),
+                            horizontal: 10,
+                            vertical: 5,
+                          ),
                           decoration: BoxDecoration(
                             color: const Color(0xFFF0FDF4),
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(
-                                color: const Color(0xFF16A34A).withOpacity(0.3)),
+                              color: const Color(0xFF16A34A).withOpacity(0.3),
+                            ),
                           ),
                           child: const Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(Icons.check_circle_rounded,
-                                  size: 13, color: Color(0xFF16A34A)),
+                              Icon(
+                                Icons.check_circle_rounded,
+                                size: 13,
+                                color: Color(0xFF16A34A),
+                              ),
                               SizedBox(width: 4),
                               Text(
                                 'You\'re Registered',
@@ -121,18 +131,20 @@ class EventDetailScreen extends ConsumerWidget {
                   Row(
                     children: [
                       Expanded(
-                          child: _InfoTile(
-                            icon: Icons.calendar_today_rounded,
-                            label: 'Date',
-                            value: event.date,
-                          )),
+                        child: _InfoTile(
+                          icon: Icons.calendar_today_rounded,
+                          label: 'Date',
+                          value: event.date,
+                        ),
+                      ),
                       const SizedBox(width: 12),
                       Expanded(
-                          child: _InfoTile(
-                            icon: Icons.access_time_rounded,
-                            label: 'Time',
-                            value: event.time,
-                          )),
+                        child: _InfoTile(
+                          icon: Icons.access_time_rounded,
+                          label: 'Time',
+                          value: event.time,
+                        ),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 12),
@@ -166,7 +178,11 @@ class EventDetailScreen extends ConsumerWidget {
                   const SizedBox(height: 32),
 
                   // Action Buttons
-                  _RegisterButton(event: event, ref: ref, currentUser: currentUser),
+                  _RegisterButton(
+                    event: event,
+                    ref: ref,
+                    currentUser: currentUser,
+                  ),
                   const SizedBox(height: 12),
                   _DiscussionButton(eventId: eventId),
                   const SizedBox(height: 32),
@@ -268,7 +284,10 @@ class _CategoryChip extends StatelessWidget {
       child: Text(
         category,
         style: TextStyle(
-            fontSize: 12, fontWeight: FontWeight.w700, color: _color),
+          fontSize: 12,
+          fontWeight: FontWeight.w700,
+          color: _color,
+        ),
       ),
     );
   }
@@ -280,7 +299,11 @@ class _RegisterButton extends StatelessWidget {
   final dynamic event;
   final WidgetRef ref;
   final dynamic currentUser;
-  const _RegisterButton({required this.event, required this.ref, required this.currentUser});
+  const _RegisterButton({
+    required this.event,
+    required this.ref,
+    required this.currentUser,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -290,21 +313,25 @@ class _RegisterButton extends StatelessWidget {
       width: double.infinity,
       height: 54,
       child: ElevatedButton.icon(
-        onPressed: isRegistered ? null : () => context.push('/event/${event.id}/register'),
+        onPressed: isRegistered
+            ? null
+            : () => context.push('/event/${event.id}/register'),
         style: ElevatedButton.styleFrom(
-          backgroundColor:
-          isRegistered ? const Color(0xFF16A34A) : AppColors.primary,
+          backgroundColor: isRegistered
+              ? const Color(0xFF16A34A)
+              : AppColors.primary,
           foregroundColor: Colors.white,
           elevation: 0,
-          shape:
-          RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
         ),
         icon: Icon(
-            isRegistered
-                  ? Icons.check_circle_rounded
-                  : Icons.app_registration_rounded,
-              size: 20,
-            ),
+          isRegistered
+              ? Icons.check_circle_rounded
+              : Icons.app_registration_rounded,
+          size: 20,
+        ),
         label: Text(
           isRegistered ? 'Registered ✓' : 'Register for Event',
           style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
@@ -313,8 +340,6 @@ class _RegisterButton extends StatelessWidget {
     );
   }
 }
-
-
 
 // ── Discussion Button ─────────────────────────────────────────────────────────
 
@@ -332,8 +357,9 @@ class _DiscussionButton extends StatelessWidget {
         style: OutlinedButton.styleFrom(
           foregroundColor: AppColors.primary,
           side: const BorderSide(color: AppColors.primary, width: 1.5),
-          shape:
-          RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
         ),
         icon: const Icon(Icons.forum_outlined, size: 20),
         label: const Text(
