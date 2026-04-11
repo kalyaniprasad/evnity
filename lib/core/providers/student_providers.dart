@@ -189,7 +189,7 @@ class CurrentUserNotifier extends Notifier<UserModel> {
       // Ensure a profile-incomplete notification exists if needed
       _checkAndEnsureProfileNotification(dbUser, notifRepo);
     } else {
-      // User doc might not exist yet if just registered via Google, create it
+      // User doc might not exist yet if just registered via Google
       final roleAsync = ref.read(userRoleProvider);
       final role = roleAsync.valueOrNull ?? 'student';
 
@@ -197,19 +197,27 @@ class CurrentUserNotifier extends Notifier<UserModel> {
         id: uid,
         email: email ?? '',
         name: name ?? (email?.split('@').first ?? 'User'),
-        aliasName: role == 'club' ? '' : AliasGenerator.generate(),
+        aliasName: role == 'club' ? name ?? 'Club' : AliasGenerator.generate(),
         role: role,
         avatarUrl: photoUrl,
       );
-      await userRepository.createUser(newUser);
+      
+      // CRITICAL FIX: Do not write club data into the students 'users' collection!
+      if (role != 'club') {
+        await userRepository.createUser(newUser);
+      }
+      
       state = newUser;
       // Start listening for notifications for newly created user
       PushNotificationService.startFirestoreListener(uid);
-      // New user always has an incomplete profile
-      await notifRepo.ensureProfileIncompleteNotification(
-        userId: uid,
-        role: role,
-      );
+      
+      if (role != 'club') {
+        // New student always has an incomplete profile
+        await notifRepo.ensureProfileIncompleteNotification(
+          userId: uid,
+          role: role,
+        );
+      }
     }
   }
 

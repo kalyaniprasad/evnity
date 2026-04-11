@@ -45,7 +45,7 @@ class _ClubProfileEditScreenState extends ConsumerState<ClubProfileEditScreen> {
     );
     _foundedCtrl = TextEditingController(text: p.founded);
     _locationCtrl = TextEditingController(text: p.location);
-    
+
     _categories = [
       'Technical',
       'Cultural',
@@ -104,10 +104,7 @@ class _ClubProfileEditScreenState extends ConsumerState<ClubProfileEditScreen> {
           'location': location,
         });
 
-        // 2. Update User Document (for consistent aliasName)
-        await repo.updateUser(user.id, {'aliasName': name});
-
-        // 3. Update Local State Providers
+        // 2. Update Local Club Profile State
         notifier.update(
           ClubProfileModel(
             name: name,
@@ -120,9 +117,6 @@ class _ClubProfileEditScreenState extends ConsumerState<ClubProfileEditScreen> {
             location: location,
           ),
         );
-
-        // Force refresh currentUserProvider to reflect name change globally
-        ref.read(currentUserProvider.notifier).updateAlias(name);
 
         // Dismiss profile-incomplete notification if profile is now complete
         final isNowComplete =
@@ -427,7 +421,7 @@ class _EditField extends StatelessWidget {
   final TextEditingController controller;
   final IconData icon;
   final int maxLines;
-  final bool readOnly;
+  final bool readOnly = false;
   final TextInputType keyboardType;
   final String? Function(String?)? validator;
 
@@ -437,7 +431,6 @@ class _EditField extends StatelessWidget {
     required this.controller,
     required this.icon,
     this.maxLines = 1,
-    this.readOnly = false,
     this.keyboardType = TextInputType.text,
     this.validator,
   });

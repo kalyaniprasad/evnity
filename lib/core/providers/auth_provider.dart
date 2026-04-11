@@ -11,8 +11,10 @@ enum UserRole { none, student, club }
 // ── Firebase Auth Stream ──────────────────────────────────────────────────────
 
 /// Streams the currently signed-in Firebase user (or null if signed out).
+/// Uses idTokenChanges() so it emits on sign-in, sign-out, AND whenever the
+/// ID token is refreshed (critical for picking up email_verified changes).
 final firebaseUserProvider = StreamProvider<User?>((ref) {
-  return FirebaseAuth.instance.authStateChanges();
+  return FirebaseAuth.instance.idTokenChanges();
 });
 
 // ── Router Notifier ───────────────────────────────────────────────────────────
@@ -56,9 +58,15 @@ final routerNotifierProvider = Provider<RouterNotifier>((ref) {
 // ── Role Provider ─────────────────────────────────────────────────────────────
 
 /// Fetches the user's role ('student' | 'club') from Firestore.
-/// Automatically re-runs whenever the Firebase user changes.
+///
+/// Watches the full [firebaseUserProvider] StreamProvider (NOT .future) so
+/// this FutureProvider re-runs on every auth state change — including the
+/// transition from unauthenticated → authenticated that happens right after
+/// signup, and after email verification reloads the user object.
 final userRoleProvider = FutureProvider<String?>((ref) async {
-  final user = await ref.watch(firebaseUserProvider.future);
+  // Watch the StreamProvider directly so any new User emission triggers a re-run.
+  final userAsync = ref.watch(firebaseUserProvider);
+  final user = userAsync.valueOrNull;
   if (user == null) return null;
 
   final authService = ref.read(authServiceProvider);
@@ -67,22 +75,38 @@ final userRoleProvider = FutureProvider<String?>((ref) async {
 
 // ── Club Status Provider ──────────────────────────────────────────────────────
 
-/// Streams the club's status ('pending' | 'approved') from Firestore.
-/// Yields null if the user is not a club or not signed in.
-final clubStatusProvider = StreamProvider<String?>((ref) async* {
-  final user = await ref.watch(firebaseUserProvider.future);
-  if (user == null) {
-    yield null;
-    return;
+/// Streams the club's approval status ('pending' | 'approved') from Firestore
+/// in real-time. Returns null if the user is not signed in or is not a club.
+///
+/// IMPORTANT: Uses a synchronous [ref.watch] pattern (NOT async* + await
+/// ref.watch) to avoid a critical Riverpod pitfall:
+///
+/// In an async* generator, when a watched [FutureProvider] (like
+/// [userRoleProvider]) re-evaluates — which is common during the signup flow
+/// as Firestore writes settle — Riverpod restarts the generator. This
+/// restart *silently cancels* the active Firestore `.snapshots()` stream,
+/// so any subsequent Firestore status updates (e.g. admin sets 'approved')
+/// are never emitted to listeners.
+///
+/// The synchronous pattern below rebuilds deterministically: whenever
+/// [firebaseUserProvider] or [userRoleProvider] changes, Riverpod disposes
+/// the old stream and creates a fresh Firestore subscription automatically.
+final clubStatusProvider = StreamProvider<String?>((ref) {
+  // Synchronously watch auth and role — rebuilds the stream when either changes.
+  final userAsync = ref.watch(firebaseUserProvider);
+  final roleAsync = ref.watch(userRoleProvider);
+
+  final user = userAsync.valueOrNull;
+  final role = roleAsync.valueOrNull;
+
+  // Not signed in, role not yet resolved from Firestore, or not a club.
+  if (user == null || role == null || role != 'club') {
+    return Stream.value(null);
   }
 
-  final role = await ref.watch(userRoleProvider.future);
-  if (role != 'club') {
-    yield null;
-    return;
-  }
-
-  yield* FirebaseFirestore.instance
+  // Real-time Firestore listener — emits the current status immediately,
+  // then re-emits on every change (e.g. admin sets status to 'approved').
+  return FirebaseFirestore.instance
       .collection('clubs')
       .doc(user.uid)
       .snapshots()
@@ -172,26 +196,16 @@ class AuthFormNotifier extends Notifier<AuthFormState> {
     required String password,
     String? name,
   }) async {
-    // Role required for sign-up; for sign-in we need at least one selected
-    // so the router knows where to redirect.
-    if (state.selectedRole == UserRole.none) {
-      setError('Please select your role to continue.');
-      return;
-    }
-
     setLoading(true);
 
     final service = ref.read(authServiceProvider);
-    final roleStr = state.selectedRole == UserRole.student ? 'student' : 'club';
 
     try {
       if (state.isLoginMode) {
-        // ── Role conflict check (email sign-in only) ────────────────────────
-        final storedRole = await service.checkEmailRole(email);
-        if (storedRole != null && storedRole != roleStr) {
-          setError(AuthService.roleConflictMessage(storedRole, roleStr));
-          return;
-        }
+        // ── LOGIN: role is detected from Firestore — NOT from the UI ─────────
+        // We do NOT require the user to have a role selected on login.
+        // The router resolves the correct destination via userRoleProvider
+        // + clubStatusProvider after sign-in completes.
         await service.signInWithEmail(email: email, password: password);
         state = state.copyWith(
           isLoading: false,
@@ -199,7 +213,13 @@ class AuthFormNotifier extends Notifier<AuthFormState> {
           isNewEmailRegistration: false,
         );
       } else {
-        // ── Brand-new email registration ───────────────────────────────────
+        // ── SIGNUP: role selection IS required ────────────────────────────
+        if (state.selectedRole == UserRole.none) {
+          setError('Please select your role to continue.');
+          return;
+        }
+        final roleStr =
+            state.selectedRole == UserRole.student ? 'student' : 'club';
         await service.signUpWithEmail(
           email: email,
           password: password,

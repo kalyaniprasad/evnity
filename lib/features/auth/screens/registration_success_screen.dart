@@ -212,7 +212,7 @@ class _RegSuccessState extends ConsumerState<RegistrationSuccessScreen>
     await Future.delayed(const Duration(milliseconds: 200));
     if (mounted) _textCtrl.forward();
 
-    // t=2600ms: navigate
+    // t=2600ms: navigate based on role from Firestore
     await Future.delayed(const Duration(milliseconds: 1900));
     if (!mounted) return;
     final uid = FirebaseAuth.instance.currentUser?.uid;
@@ -221,7 +221,19 @@ class _RegSuccessState extends ConsumerState<RegistrationSuccessScreen>
       role = await ref.read(authServiceProvider).getUserRole(uid);
     }
     if (!mounted) return;
-    context.go(role == 'club' ? '/club/home' : '/search');
+
+    if (role == 'club') {
+      // Check current status before navigating
+      final status = await ref.read(authServiceProvider).getClubStatus(uid!);
+      if (status == 'approved') {
+        context.go('/club/home');
+      } else {
+        context.go('/waiting-approval');
+      }
+    } else {
+      // Students go straight to the home feed.
+      context.go('/home');
+    }
   }
 
   @override

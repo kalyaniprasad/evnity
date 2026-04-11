@@ -61,8 +61,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       final roleAsync = ref.read(userRoleProvider);
       final statusAsync = ref.read(clubStatusProvider);
 
-      // While loading, don't redirect
-      if (userAsync.isLoading || roleAsync.isLoading || statusAsync.isLoading) return null;
+      // While user auth or role is loading, don't redirect.
+      // NOTE: We do NOT block on statusAsync.isLoading — the club status guard
+      // handles its own loading state so that a freshly-approved club is not
+      // stuck on the waiting screen due to an unresolved status stream.
+      if (userAsync.isLoading || roleAsync.isLoading) return null;
 
       final user = userAsync.valueOrNull;
       final currentPath = state.uri.path;
@@ -99,28 +102,41 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       // ── Authenticated: let verification-flow screens self-navigate ─────────
       if (isVerificationFlow) return null;
 
-      // ── Authenticated – resolve role ────────────────────────────────────────
+      // ── Authenticated – resolve role from Firestore (never from UI) ────────
       final role = roleAsync.valueOrNull;
 
-      // If role is unknown (Firestore error / still resolving) and the user
-      // is already inside the app, allow the navigation rather than looping.
+      // If role is still loading / could not be resolved, stay on the current
+      // page rather than blindly redirecting to '/home' (which would be wrong
+      // for a pending club).
       if (role == null) {
-        return isPreAuth ? '/home' : null;
+        // Only bounce away from pure pre-auth screens; otherwise stay put.
+        if (isPreAuth) return null; // let the loading state render
+        return null;
       }
-      
+
       // ── Club Status Guard ───────────────────────────────────────────────────
       if (role == 'club') {
         final status = statusAsync.valueOrNull;
-        if (status != 'approved') {
+
+        if (status == 'approved') {
+          // Approved club — push away from waiting screen to dashboard
+          if (currentPath == '/waiting-approval') return '/club/home';
+        } else {
+          // status is 'pending', null (loading), or unknown → hold on waiting screen.
+          // The WaitingApprovalScreen also listens directly to Firestore so it
+          // self-navigates the moment the stream emits 'approved'.
           if (currentPath != '/waiting-approval') return '/waiting-approval';
-          return null; // Stay on waiting approval screen
-        } else if (currentPath == '/waiting-approval') {
-          return '/club/home';
+          return null; // stay on waiting-approval
         }
       }
 
+      // ── Students must not access club routes or waiting screen ─────────────
+      if (role == 'student' && currentPath == '/waiting-approval') {
+        return '/home';
+      }
+
       // Push authenticated users away from pre-auth screens
-      if (isPreAuth || currentPath == '/waiting-approval') {
+      if (isPreAuth) {
         return role == 'club' ? '/club/home' : '/home';
       }
 

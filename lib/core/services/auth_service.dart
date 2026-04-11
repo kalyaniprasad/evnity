@@ -13,6 +13,36 @@ class AuthService {
 
   User? get currentUser => _auth.currentUser;
 
+  // ── Detect which Firestore collection a UID belongs to ────────────────────
+  /// Returns 'users', 'clubs', or null if the UID is not found in either.
+  Future<String?> detectUserCollection(String uid) async {
+    // Check clubs first — they are the more restricted role.
+    final clubDoc = await _db.collection('clubs').doc(uid).get();
+    if (clubDoc.exists) return 'clubs';
+
+    final userDoc = await _db.collection('users').doc(uid).get();
+    if (userDoc.exists) return 'users';
+
+    return null;
+  }
+
+  // ── Safety: remove duplicate entries ─────────────────────────────────────
+  /// If a UID exists in BOTH collections (should never happen), this removes
+  /// the entry from the collection that does NOT match [correctCollection].
+  Future<void> _removeDuplicateEntry(
+    String uid,
+    String correctCollection,
+  ) async {
+    final wrongCollection = correctCollection == 'clubs' ? 'users' : 'clubs';
+    final wrongDoc = await _db.collection(wrongCollection).doc(uid).get();
+    if (wrongDoc.exists) {
+      await _db.collection(wrongCollection).doc(uid).delete();
+      print(
+        'AUTH_SAFETY: Removed duplicate entry for $uid from "$wrongCollection".',
+      );
+    }
+  }
+
   // ── Sign Up with Email ────────────────────────────────────────────────────
   Future<UserCredential> signUpWithEmail({
     required String email,
@@ -25,27 +55,36 @@ class AuthService {
       password: password,
     );
 
+    final uid = credential.user!.uid;
+
     // Update display name
     await credential.user!.updateDisplayName(name);
 
-    // Persist role + profile to Firestore
+    // Determine the SINGLE correct collection for this role
     final collection = role == 'club' ? 'clubs' : 'users';
-    final data = {
-      'uid': credential.user!.uid,
+
+    // Safety: remove any pre-existing entry in the OPPOSITE collection
+    // (e.g., from a previous failed signup attempt)
+    await _removeDuplicateEntry(uid, collection);
+
+    final data = <String, dynamic>{
+      'uid': uid,
       'email': email,
       'name': name,
       'aliasName': role == 'club' ? '' : AliasGenerator.generate(),
       'role': role,
       'createdAt': FieldValue.serverTimestamp(),
     };
-    
+
     if (role == 'club') {
+      // Every new club starts as pending — an admin must approve it.
       data['status'] = 'pending';
     }
 
-    await _db.collection(collection).doc(credential.user!.uid).set(data);
+    // Write to ONLY the correct collection
+    await _db.collection(collection).doc(uid).set(data);
 
-    // Send email verification to the newly created user
+    // Send email verification
     await credential.user!.sendEmailVerification();
 
     return credential;
@@ -58,6 +97,15 @@ class AuthService {
     final user = _auth.currentUser;
     if (user == null) return false;
     await user.reload();
+
+    // ── CRITICAL FIX: Force token refresh ──────────────────────────────────
+    // Once verified, we MUST force-refresh the ID token so that Firestore
+    // security rules see the updated 'email_verified' claim immediately.
+    // Without this, Firestore hits 'Permission Denied' for ~1 hour.
+    if (_auth.currentUser?.emailVerified ?? false) {
+      await _auth.currentUser?.getIdToken(true);
+    }
+
     return _auth.currentUser?.emailVerified ?? false;
   }
 
@@ -95,15 +143,19 @@ class AuthService {
       );
 
       final userCredential = await _auth.signInWithCredential(credential);
+      final uid = userCredential.user!.uid;
 
-      // If new user → persist role to Firestore
       if (userCredential.additionalUserInfo?.isNewUser == true) {
+        // Brand-new Google user — write to exactly ONE collection
         final role = selectedRole ?? 'student';
         final displayName = userCredential.user!.displayName ?? 'User';
-        
         final collection = role == 'club' ? 'clubs' : 'users';
-        final data = {
-          'uid': userCredential.user!.uid,
+
+        // Safety: remove any duplicate from the opposite collection
+        await _removeDuplicateEntry(uid, collection);
+
+        final data = <String, dynamic>{
+          'uid': uid,
           'email': userCredential.user!.email ?? '',
           'name': displayName,
           'aliasName': role == 'club' ? '' : AliasGenerator.generate(),
@@ -115,7 +167,13 @@ class AuthService {
           data['status'] = 'pending';
         }
 
-        await _db.collection(collection).doc(userCredential.user!.uid).set(data);
+        await _db.collection(collection).doc(uid).set(data);
+      } else {
+        // Returning Google user — run safety check to fix any legacy duplicates
+        final collection = await detectUserCollection(uid);
+        if (collection != null) {
+          await _removeDuplicateEntry(uid, collection);
+        }
       }
 
       return userCredential;
@@ -132,49 +190,70 @@ class AuthService {
   }
 
   // ── Fetch user role from Firestore ────────────────────────────────────────
+  /// Returns the role ('student' | 'club') of the given [uid].
+  /// Checks 'clubs' FIRST (more restrictive), then 'users'.
+  /// If the user exists in both (legacy bug), the club entry wins and the
+  /// duplicate is removed.
   Future<String?> getUserRole(String uid, {String? email}) async {
-    // Check users collection first
-    var doc = await _db.collection('users').doc(uid).get();
-    if (doc.exists && doc.data() != null) {
-      if (email == null || doc.data()!['email'] == email) {
-        return doc.data()!['role'] as String?;
+    // ── 1. Check clubs collection first ───────────────────────────────────
+    final clubDoc = await _db.collection('clubs').doc(uid).get();
+    if (clubDoc.exists && clubDoc.data() != null) {
+      if (email == null || clubDoc.data()!['email'] == email) {
+        // Found in clubs — ensure no duplicate in users
+        await _removeDuplicateEntry(uid, 'clubs');
+        return clubDoc.data()!['role'] as String? ?? 'club';
       }
     }
-    
-    // Fallback to clubs collection
-    doc = await _db.collection('clubs').doc(uid).get();
-    if (doc.exists && doc.data() != null) {
-      if (email == null || doc.data()!['email'] == email) {
-        return doc.data()!['role'] as String?;
+
+    // ── 2. Fallback to users collection ───────────────────────────────────
+    final userDoc = await _db.collection('users').doc(uid).get();
+    if (userDoc.exists && userDoc.data() != null) {
+      if (email == null || userDoc.data()!['email'] == email) {
+        return userDoc.data()!['role'] as String? ?? 'student';
       }
     }
-    
+
     return null;
   }
 
-  // ── Check registered role for an email address ──────────────────────────
+  // ── Fetch club approval status ────────────────────────────────────────────
+  /// Returns the club's status ('pending' | 'approved') from Firestore,
+  /// or null if the user is not a club / document not found.
+  Future<String?> getClubStatus(String uid) async {
+    try {
+      final doc = await _db.collection('clubs').doc(uid).get();
+      if (doc.exists && doc.data() != null) {
+        return doc.data()!['status'] as String?;
+      }
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  // ── Check registered role for an email address ────────────────────────────
   /// Returns the stored role ('student'|'club') for [email], or null if not
   /// found / Firestore is unreachable (offline). The call is non-throwing.
   Future<String?> checkEmailRole(String email) async {
     try {
-      // Check users collection
+      // Check clubs first
       var query = await _db
-          .collection('users')
-          .where('email', isEqualTo: email)
-          .limit(1)
-          .get();
-      if (query.docs.isNotEmpty) {
-        return query.docs.first.data()['role'] as String?;
-      }
-
-      // Check clubs collection
-      query = await _db
           .collection('clubs')
           .where('email', isEqualTo: email)
           .limit(1)
           .get();
       if (query.docs.isNotEmpty) {
-        return query.docs.first.data()['role'] as String?;
+        return query.docs.first.data()['role'] as String? ?? 'club';
+      }
+
+      // Then check users
+      query = await _db
+          .collection('users')
+          .where('email', isEqualTo: email)
+          .limit(1)
+          .get();
+      if (query.docs.isNotEmpty) {
+        return query.docs.first.data()['role'] as String? ?? 'student';
       }
 
       return null;
@@ -183,7 +262,7 @@ class AuthService {
     }
   }
 
-  // ── Friendly role-conflict message ───────────────────────────────────────
+  // ── Friendly role-conflict message ────────────────────────────────────────
   static String roleConflictMessage(
     String registeredRole,
     String attemptedRole,
